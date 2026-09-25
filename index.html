@@ -77,9 +77,9 @@ button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 .want{display:flex;align-items:center;gap:10px;background:#FFF0C9;border:2px dashed var(--sun-d);border-radius:14px;padding:8px 12px;font-size:15px;margin-bottom:12px}
 .want .big{font-size:28px}
 .want.none{background:var(--panel-2);border-color:var(--line);color:var(--ink-soft)}
-.acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:10px}
-.act{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px 8px;font-size:16px}
-.act .ic{font-size:28px;line-height:1}
+.acts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.act{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 6px;font-size:14px}
+.act .ic{font-size:24px;line-height:1}
 .act.c1{background:#FFE1B8}.act.c2{background:#FFD3DA}.act.c3{background:#D5F3E8}.act.c4{background:#DCE8FF}.act.c5{background:#EADFFF}
 .chooser{margin-top:12px;padding-top:12px;border-top:2px dashed var(--line)}
 .chooser h3{margin:0 0 8px;font-family:var(--display);font-weight:400;font-size:18px}
@@ -124,6 +124,27 @@ button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 #nameInput,#catchInput{flex:1;min-width:0;font-family:var(--display);font-size:20px;padding:8px 12px;border:3px solid var(--ink);border-radius:14px;background:#fff;color:var(--ink)}
 .big-go{width:100%;padding:12px;font-size:22px;background:var(--coral);color:#fff;margin-top:6px}
 
+@media (max-width:440px){.hud-right{gap:6px}.icon-btn{width:40px;height:40px;font-size:18px}.coins{font-size:18px;padding:5px 10px}.brand{padding:5px 10px 6px}.brand h1{font-size:21px}.brand .clock{font-size:12px}}
+/* voice / rps / photos */
+.voice-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:14px}
+.voice-row label{display:flex;align-items:center;gap:6px}
+.voice-row input[type=range]{width:110px;accent-color:var(--coral)}
+.rps-board{display:flex;align-items:center;justify-content:space-around;background:linear-gradient(#BFEFFF,#E8FAFF);border:3px solid var(--ink);border-radius:20px;padding:14px 8px}
+.side{display:flex;flex-direction:column;align-items:center;gap:2px;font-family:var(--display);font-size:18px}
+.hand{font-size:64px;line-height:1.15;animation:pop .3s cubic-bezier(.3,1.6,.5,1)}
+.pts{font-size:28px;color:var(--coral-d);font-variant-numeric:tabular-nums}
+.vs{font-family:var(--display);font-size:26px;color:var(--ink-soft)}
+.rps-msg{text-align:center;font-family:var(--display);font-size:20px;margin:12px 0}
+.rps-hands{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rps-btn{display:flex;flex-direction:column;align-items:center;font-size:16px;padding:10px 4px 8px}
+.rps-btn span{font-size:40px;line-height:1.1}
+.photo{width:100%;border:3px solid var(--ink);border-radius:16px;display:block}
+.tip{font-size:13px;color:var(--ink-soft);margin:8px 0 12px}
+.row-btns{display:flex;gap:10px;flex-wrap:wrap}
+.album{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.album button{padding:0;border-radius:12px;overflow:hidden;border:3px solid var(--ink);box-shadow:0 3px 0 var(--ink);background:#fff}
+.album img{width:100%;display:block}
+.flash{position:fixed;inset:0;background:#fff;z-index:40;pointer-events:none;animation:fade .5s forwards}
 /* friends */
 .fr-list{display:flex;flex-direction:column;gap:12px}
 .fr{border:3px solid var(--ink);border-radius:18px;background:#fff;padding:10px 12px;display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start}
@@ -156,6 +177,7 @@ button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
   <div class="hud-right">
     <div class="coins toy" aria-label="金币"><span class="coin"></span><span id="coinNum">0</span></div>
     <button class="toy icon-btn" id="newsBtn" aria-label="小岛新闻">📰<span class="dot" id="newsDot" hidden></span></button>
+    <button class="toy icon-btn" id="photoBtn" aria-label="拍照">📷</button>
     <button class="toy icon-btn" id="soundBtn" aria-label="声音开关">🔊</button>
   </div>
 </div>
@@ -234,6 +256,7 @@ const DREAMS = [
   '梦见自己会飞，一路飞到云朵上睡午觉。'
 ];
 const SOCIAL = ['love','propose','makeup'];
+const HANDS = [{e:'✊',n:'石头'},{e:'✌️',n:'剪刀'},{e:'🖐️',n:'布'}]; // i beats (i+1)%3
 const SLOT_R = 13.5;
 const SLOTS = Array.from({length:8},(_,i)=>{ const a=i*Math.PI/4+Math.PI/8; return {a, x:Math.cos(a)*SLOT_R, z:Math.sin(a)*SLOT_R}; });
 
@@ -244,12 +267,13 @@ let selected = null;
 let mode = 'island';
 let soundOn = store('xx_sound') !== '0';
 
+function newVoice(){ return {pitch:Math.round(rand(.8,1.6)*10)/10, rate:Math.round(rand(.9,1.2)*10)/10}; }
 function newLook(){ return {skin:pick(SKINS), hair:pick(HAIRS).id, hairColor:pick(HAIR_COLORS), shirt:pick(SHIRTS), eyes:pick(EYES).id}; }
 function makeResData(name, look, pers, slot){
   const foods = Object.keys(FOODS);
   const fav = pick(foods); let dislike = pick(foods); while(dislike===fav) dislike = pick(foods);
   return { id:'r'+Date.now().toString(36)+Math.floor(Math.random()*1e4), name, look, pers, fav, dislike,
-    mood:70, full:80, level:1, xp:0, friends:{}, acc:null, slot, want:null,
+    mood:70, full:80, level:1, xp:0, friends:{}, acc:null, slot, want:null, voice:newVoice(),
     catch:pick(CATCHES), partner:null, pType:null, pSince:0, kid:false, parents:null,
     room:{ wall:pick(WALLS), floor:pick(FLOORS), items:[{type:'bed',x:0,z:0,rot:1},{type:'rug',x:3,z:3,rot:0}] } };
 }
@@ -293,6 +317,18 @@ const sfx = {
   munch(){ tone(220,.05,'square',.04); tone(180,.05,'square',.04,.1); tone(240,.05,'square',.04,.2); },
   boing(){ const c=ac(); if(!soundOn||!c) return; const o=c.createOscillator(), g=c.createGain(), t=c.currentTime; o.type='sine'; o.frequency.setValueAtTime(300,t); o.frequency.exponentialRampToValueAtTime(700,t+.15); g.gain.setValueAtTime(.1,t); g.gain.exponentialRampToValueAtTime(.001,t+.2); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+.22); }
 };
+
+/* ---------------- voice ---------------- */
+function speakWith(voice, text){
+  if(!soundOn || !window.speechSynthesis || !text) return;
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text); u.lang = 'zh-CN';
+    u.pitch = (voice && voice.pitch) || 1; u.rate = (voice && voice.rate) || 1;
+    const zh = speechSynthesis.getVoices().find(v=>/zh/i.test(v.lang)); if(zh) u.voice = zh;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
 
 /* ---------------- three basics ---------------- */
 const canvas = $('#game');
@@ -608,16 +644,24 @@ function randomSpot(){
 function addResident(d, fresh){
   const p = buildChar(d.look, d.acc);
   const r = { d, p, state:'idle', timer:rand(.5,2), dest:null, phase:0, target:null, bubble:null, bubbleKey:'', chatTopic:0, chatT:0, sadT:0, happyT:0, speed: d.pers==='lively'?2.6:2.1 };
-  const label = sprite(labelTex(d.name), 1.5, .42); label.position.y = 2.72; p.root.add(label); r.label = label;
-  const b = sprite(bubbleTex('💬','n'), 1.05, 1.05); b.position.y = 3.55; b.visible = false; p.root.add(b); r.bubble = b;
-  const start = fresh ? doorPoint(d.slot) : randomSpot();
-  p.root.position.copy(start); p.root.scale.setScalar(d.kid ? .85 : 1.25);
-  p.hit.userData.pick = {type:'res', r};
+  dressChar(r);
+  p.root.position.copy(fresh ? doorPoint(d.slot) : randomSpot());
   scene.add(p.root);
   residents.push(r);
   buildHouse(r);
   if(isNight()){ r.state='home'; p.root.visible = false; }
   return r;
+}
+function dressChar(r){
+  const p = r.p;
+  const label = sprite(labelTex(r.d.name), 1.5, .42); label.position.y = 2.72; p.root.add(label); r.label = label;
+  const b = sprite(bubbleTex('💬','n'), 1.05, 1.05); b.position.y = 3.55; b.visible = false; p.root.add(b); r.bubble = b; r.bubbleKey = '';
+  p.root.scale.setScalar(r.d.kid ? .85 : 1.25); p.hit.userData.pick = {type:'res', r};
+}
+function rebuildChar(r){
+  const old = r.p.root, p = buildChar(r.d.look, r.d.acc);
+  p.root.position.copy(old.position); p.root.rotation.y = old.rotation.y; p.root.visible = old.visible;
+  scene.remove(old); r.p = p; dressChar(r); scene.add(p.root);
 }
 function setBubble(r, emoji, style='n'){
   const k = emoji ? emoji+style : '';
@@ -635,6 +679,7 @@ function wantEmoji(w){
   if(w.type==='love') return '💘';
   if(w.type==='propose') return '💍';
   if(w.type==='makeup') return '💢';
+  if(w.type==='play') return '✊';
   return '❗';
 }
 function wantText(r){
@@ -644,6 +689,7 @@ function wantText(r){
   if(w.type==='furn') return `想在家里放一个${FURN[w.item].n}`;
   if(w.type==='friend') return '想认识一个新朋友';
   if(w.type==='pat') return '想要摸摸头';
+  if(w.type==='play') return '想和你玩猜拳';
   const o = w.with && byId(w.with); const on = o ? o.d.name : 'TA';
   if(w.type==='love') return `偷偷喜欢上了${on}，想表白……帮帮忙吧！`;
   if(w.type==='propose') return `想向${on}求婚！`;
@@ -724,6 +770,11 @@ function endChat(r){
 function decide(r){
   if(isNight()){ r.state = 'walk'; r.dest = doorPoint(r.d.slot); r.onArrive = 'home'; return; }
   if(r === selected){ r.state = 'idle'; r.timer = 1; return; }
+  if(festivalNow()){
+    if(!r.watching){ r.watching = true; r.state = 'walk'; r.dest = plazaSpot(); r.onArrive = null; r.target = null; return; }
+    r.state = 'idle'; r.timer = rand(3,5); return;
+  }
+  r.watching = false;
   const roll = Math.random(), chatty = r.d.pers==='lively'||r.d.pers==='funny' ? .45 : .32;
   if(roll < chatty){
     const pt = r.d.partner && byId(r.d.partner);
@@ -734,6 +785,7 @@ function decide(r){
   if(roll < .8){ r.state='walk'; r.dest = randomSpot(); r.onArrive = null; r.target = null; return; }
   r.state = 'idle'; r.timer = rand(2,4);
 }
+function plazaSpot(){ for(let k=0;k<20;k++){ const a = rand(0,6.28), rr = rand(5,7.5); const v = new T.Vector3(Math.cos(a)*rr,0,Math.sin(a)*rr); if(!EXCL.some(e=>Math.hypot(e.x-v.x,e.z-v.z)<e.r+.3)) return v; } return new T.Vector3(0,0,6); }
 function angleTo(from, to){ return Math.atan2(to.x-from.x, to.z-from.z); }
 function turnTo(obj, ang, k){ let d = ang - obj.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); obj.rotation.y += d*Math.min(1,k); }
 
@@ -805,6 +857,7 @@ function updateResident(r, dt, t){
   else if(r.state==='eat') setBubble(r, r.eatEmoji || '😋');
   else if(r.d.want) setBubble(r, wantEmoji(r.d.want), 'want');
   else if(r.d.mood < 30) setBubble(r, '💧');
+  else if(festivalNow() && r.state==='idle') setBubble(r, '🎆');
   else setBubble(r, null);
   r.bubble.position.y = 3.55 + Math.sin(t*3 + r.d.slot)*.08;
   animate(r, dt, t);
@@ -816,9 +869,9 @@ function needsTick(r, secs){
   d.full = clamp(d.full - secs*.3, 0, 100);
   const target = d.full < 25 ? 25 : (d.want ? 50 : 70);
   d.mood += (target - d.mood) * .01 * secs;
-  if(d.full < 38 && (!d.want || ['pat','acc','furn','friend'].includes(d.want.type))){ d.want = {type:'food', item: Math.random()<.5 ? d.fav : null}; }
+  if(d.full < 38 && (!d.want || ['pat','acc','furn','friend','play'].includes(d.want.type))){ d.want = {type:'food', item: Math.random()<.5 ? d.fav : null}; }
   if(!d.want && Math.random() < .008*secs){
-    const opts = ['pat','acc','furn'];
+    const opts = ['pat','acc','furn','play'];
     if(residents.length > 1 && residents.some(o=>o!==r && (d.friends[o.d.id]||0) < 15)) opts.push('friend','friend');
     const ty = pick(opts);
     if(ty==='acc'){ const choices = Object.keys(ACCS).filter(k=>k!==d.acc); d.want = {type:'acc', item:pick(choices)}; }
@@ -951,6 +1004,8 @@ function showDream(r){
 
 /* ---------------- time of day ---------------- */
 function isNight(){ return S.hour >= 21 || S.hour < 6; }
+function isFestival(){ return S.day % 3 === 0; }
+function festivalNow(){ return isFestival() && S.hour >= 19.5 && S.hour < 21; }
 const KEYS = [[0,SKY_NIGHT,.1,.25],[5,SKY_NIGHT,.1,.25],[6.5,SKY_DUSK,.55,.5],[8,SKY_DAY,.75,.65],[17,SKY_DAY,.75,.65],[19,SKY_DUSK,.5,.5],[20.5,SKY_NIGHT,.12,.28],[24,SKY_NIGHT,.1,.25]];
 const tmpC = new T.Color();
 function applySky(){
@@ -966,9 +1021,10 @@ function applySky(){
 let lastHourInt = null;
 function tickTime(dt){
   const prev = S.hour;
-  S.hour += dt * (isNight() ? .05 : .1); // 1 game hour = 10s day, 20s night
+  S.hour += dt * (isNight() ? .05 : festivalNow() ? .04 : .1); // 1 game hour = 10s day, 20s night, 25s during fireworks
   if(S.hour >= 24) S.hour -= 24;
   if(prev < 6 && S.hour >= 6) morning();
+  if(prev < 19.5 && S.hour >= 19.5 && isFestival()){ toast('烟花大会开始啦！大家都来广场啦','gold'); residents.forEach(r=>{ if(r.state==='idle'||r.state==='walk'){ r.state='idle'; r.timer=rand(0,1.5); r.watching=false; } }); }
   if(prev < 21 && S.hour >= 21) toast('天黑啦，大家都回家睡觉了。可以去他们家里看看哦', 'n');
   const night = isNight(); $('#bSleep').hidden = !night || mode!=='island';
   const hh = Math.floor(S.hour), mm = Math.floor((S.hour-hh)*60/10)*10;
@@ -994,10 +1050,32 @@ function morning(){
       extra.push(kid ? `👶 ${r.d.name} 和 ${pt.d.name} 的宝宝 ${kid.d.name} 出生了！` : `🍼 ${r.d.name} 和 ${pt.d.name} 想要个宝宝，可是小岛住满啦`);
     }
   });
+  if(isFestival()) extra.push('🎆 今晚 7 点半，广场上空有烟花大会，大家都会来看！');
   S.news.items.push(...extra); S.newsUnread = S.news.items.length > 0; updateNewsDot();
   if(mode==='room'){ buildRoomKeepChar(); renderRoomBar(); }
   toast(`早上好！第 ${S.day} 天开始啦，送你 30 金币`, 'gold'); addCoins(30); save();
   if(S.newsUnread) setTimeout(()=>toast('📰 今天的小岛新闻出炉啦，点右上角看看'), 1500);
+}
+
+const fireworks = []; let fwT = 0;
+const dotTex = (()=>{ const c = document.createElement('canvas'); c.width = c.height = 32; const g = c.getContext('2d'); const gr = g.createRadialGradient(16,16,0,16,16,16); gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(.4,'rgba(255,255,255,.8)'); gr.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0,0,32,32); return new T.CanvasTexture(c); })();
+function spawnFirework(){
+  const n = 80, pos = new Float32Array(n*3), vel = [];
+  const a = rand(0,6.28), rr = rand(2,11), c = new T.Vector3(Math.cos(a)*rr, rand(9,14), Math.sin(a)*rr);
+  for(let i=0;i<n;i++){ pos[i*3]=c.x; pos[i*3+1]=c.y; pos[i*3+2]=c.z; vel.push(new T.Vector3(rand(-1,1),rand(-1,1),rand(-1,1)).normalize().multiplyScalar(rand(5,8))); }
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos,3));
+  const m = new T.PointsMaterial({color:pick(['#FF7A8A','#FFD54D','#6FA8FF','#7ED957','#B48CFF','#FFFFFF','#FF9F5A']), size:.7, map:dotTex, transparent:true, depthWrite:false, blending:T.AdditiveBlending, fog:false});
+  const pts = new T.Points(g, m); scene.add(pts); fireworks.push({pts, vel, life:1.8});
+  if(mode==='island'){ tone(rand(70,110),.5,'sine',.12); tone(rand(900,1400),.15,'triangle',.02,.05); }
+}
+function updateFireworks(dt){
+  if(festivalNow()){ fwT -= dt; if(fwT <= 0){ spawnFirework(); fwT = rand(.35,1.1); } }
+  for(let i=fireworks.length-1;i>=0;i--){
+    const f = fireworks[i], arr = f.pts.geometry.attributes.position.array; f.life -= dt;
+    f.vel.forEach((v,j)=>{ v.y -= 3*dt; v.multiplyScalar(.975); arr[j*3]+=v.x*dt; arr[j*3+1]+=v.y*dt; arr[j*3+2]+=v.z*dt; });
+    f.pts.geometry.attributes.position.needsUpdate = true; f.pts.material.opacity = clamp(f.life/1.2,0,1);
+    if(f.life<=0){ scene.remove(f.pts); f.pts.geometry.dispose(); f.pts.material.dispose(); fireworks.splice(i,1); }
+  }
 }
 
 /* ---------------- camera ---------------- */
@@ -1080,6 +1158,7 @@ function renderSheet(){
   let wantActs = '';
   if(w && wo && w.type==='love') wantActs = `<div class="want-acts"><span>怎么表白好呢？</span>${Object.entries(CONFESS).map(([k,v])=>`<button class="toy pill-btn" data-confess="${k}">${v.e} ${v.n}</button>`).join('')}</div>`;
   if(w && wo && w.type==='propose') wantActs = `<div class="want-acts"><button class="toy pill-btn hot" data-propose="1">💍 帮忙求婚</button></div>`;
+  if(w && w.type==='play') wantActs = `<div class="want-acts"><button class="toy pill-btn" data-act="rps">✊ 陪他玩</button></div>`;
   if(w && wo && w.type==='makeup') wantActs = `<div class="want-acts"><button class="toy pill-btn" data-makeup="1">🤝 帮他们和好</button></div>`;
   const others = residents.filter(o=>o!==r);
   let ch = '';
@@ -1111,9 +1190,12 @@ function renderSheet(){
       <button class="toy act c2" data-act="gift"><span class="ic">🎁</span>送礼物</button>
       <button class="toy act c3" data-act="pat"><span class="ic">🤚</span>摸摸头</button>
       <button class="toy act c4" data-act="intro"><span class="ic">👫</span>介绍朋友</button>
+      <button class="toy act c5" data-act="rps"><span class="ic">✊</span>猜拳</button>
+      <button class="toy act c1" data-act="edit"><span class="ic">✂️</span>换造型</button>
       <button class="toy act c5" data-act="home"><span class="ic">🏠</span>去他家</button>
     </div>${ch}`;
   el.hidden = false; refreshBars();
+  const line = r.say || talk(r); if(line !== r.spoken){ r.spoken = line; speakWith(d.voice, line); }
 }
 function refreshBars(){
   if(!selected || $('#sheet').hidden) return; const d = selected.d;
@@ -1139,6 +1221,8 @@ $('#sheet').addEventListener('click', e=>{
       renderSheet(); return;
     }
     if(a==='home'){ enterRoom(r); return; }
+    if(a==='edit'){ closeSheet(); openEditor(r); return; }
+    if(a==='rps'){ if(r.state==='home'){ toast(`${d.name} 在睡觉，明天再玩吧`); return; } openRPS(r); return; }
     chooser = chooser===a ? null : a; renderSheet(); return;
   }
   if(b.dataset.feed){
@@ -1196,7 +1280,7 @@ function openModal(html, onClick){
   bg.addEventListener('click', e=>{ if(e.target===bg){ closeModal(); return; } const b = e.target.closest('button'); if(b){ if(b.dataset.close){ closeModal(); return; } onClick && onClick(b, e); } });
   bg.addEventListener('input', e=>onClick && onClick(null, e));
 }
-function closeModal(){ $('#modalRoot').innerHTML = ''; editorOpen = false; }
+function closeModal(){ $('#modalRoot').innerHTML = ''; editorOpen = false; editing = null; }
 
 let shopTab = 'food';
 function openShop(tab){
@@ -1231,24 +1315,91 @@ function openFriends(confirming){
   });
 }
 
+/* ---------------- mini game: rock paper scissors ---------------- */
+function openRPS(r){
+  const st = {me:0, him:0, last:null, done:false};
+  if(selected) closeSheet();
+  cam.goal.copy(r.p.root.position);
+  const talkTo = line => { r.say = line; r.spoken = line; speakWith(r.d.voice, line); };
+  const draw = ()=>{
+    const L = st.last, name = esc(r.d.name);
+    const msg = st.done ? (st.me > st.him ? `你赢啦！${name} 送你 30 金币` : `${name} 赢啦！陪玩奖励 15 金币`) : L ? (L.res>0 ? '这一局你赢了！' : L.res<0 ? `这一局 ${name} 赢了` : '一样的！再来一次') : '三局两胜，出拳吧！';
+    openModal(`<div class="modal-head"><h2>和${name}猜拳</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>
+      <div class="rps-board"><div class="side">你<div class="hand">${L ? HANDS[L.mine].e : '❔'}</div><div class="pts">${st.me}</div></div><div class="vs">VS</div><div class="side">${name}<div class="hand">${L ? HANDS[L.his].e : '❔'}</div><div class="pts">${st.him}</div></div></div>
+      <div class="rps-msg">${msg}</div>
+      ${st.done ? '<button class="toy big-go" data-close="1">好开心！</button>' : `<div class="rps-hands">${HANDS.map((h,i)=>`<button class="toy rps-btn" data-hand="${i}"><span>${h.e}</span>${h.n}</button>`).join('')}</div>`}`, b=>{
+      if(!b || !b.dataset.hand || st.done) return;
+      const mine = +b.dataset.hand, his = Math.floor(Math.random()*3);
+      const res = mine===his ? 0 : ((mine+1)%3===his ? 1 : -1);
+      if(res>0) st.me++; else if(res<0) st.him++;
+      st.last = {mine, his, res}; sfx.pop();
+      if(st.me>=2 || st.him>=2){
+        st.done = true; const win = st.me > st.him;
+        r.d.mood = clamp(r.d.mood+15,0,100);
+        if(r.d.want && r.d.want.type==='play') fulfil(r, win?30:15); else addCoins(win?30:15);
+        beHappy(r, win?'😆':'😝', 2); sfx.happy();
+        talkTo((win ? '你好厉害呀！下次我一定赢' : '耶！我赢啦！再来玩哦') + '，' + r.d.catch);
+      } else talkTo(res>0 ? '哎呀！' : res<0 ? '嘿嘿！' : '一样的！');
+      draw();
+    });
+  };
+  draw();
+}
+
+/* ---------------- photos ---------------- */
+function loadPhotos(){ try{ return JSON.parse(store('xx_photos')||'[]') || []; }catch(e){ return []; } }
+function takePhoto(){
+  if(mode==='island') renderer.render(scene, camera); else renderer.render(roomScene, roomCam);
+  const src = renderer.domElement, w = 720, h = Math.round(w*src.height/src.width);
+  const c = document.createElement('canvas'); c.width = w; c.height = h + 60; const g = c.getContext('2d');
+  g.fillStyle = '#FFFBF2'; g.fillRect(0,0,c.width,c.height); g.drawImage(src,0,0,w,h);
+  g.fillStyle = '#D95466'; g.font = 'bold 26px "PingFang SC","Microsoft YaHei",sans-serif'; g.fillText('心心小岛', 20, h+40);
+  g.fillStyle = '#6E6788'; g.font = '20px "PingFang SC","Microsoft YaHei",sans-serif'; g.fillText(`第 ${S.day} 天` + (mode==='room' && roomRes ? ` · ${roomRes.d.name}的家` : ''), 140, h+40);
+  let url; try{ url = c.toDataURL('image/jpeg', .8); }catch(e){ toast('这次没拍成，再试一次吧'); return; }
+  const fl = document.createElement('div'); fl.className = 'flash'; document.body.appendChild(fl); setTimeout(()=>fl.remove(), 600);
+  tone(1800,.04,'square',.05); tone(1200,.06,'square',.04,.05);
+  showPhoto(url, true);
+}
+function showPhoto(url, fresh, idx){
+  const n = loadPhotos().length;
+  openModal(`<div class="modal-head"><h2>${fresh ? '咔嚓！' : '照片'}</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>
+    <img class="photo" src="${url}" alt="小岛照片">
+    <p class="tip">长按或右键图片，就能保存到你的设备里。</p>
+    <div class="row-btns">${fresh ? '<button class="toy pill-btn" data-keep="1">放进相册</button>' : `<button class="toy pill-btn" data-del="${idx}">删掉这张</button>`}<button class="toy pill-btn" data-album="1">看相册（${n}）</button></div>`, b=>{
+    if(!b) return;
+    if(b.dataset.keep){ const ph = loadPhotos(); ph.unshift(url); while(ph.length > 8) ph.pop(); try{ localStorage.setItem('xx_photos', JSON.stringify(ph)); toast('放进相册啦'); }catch(e){ toast('相册满啦，先删几张吧'); } openAlbum(); }
+    if(b.dataset.del !== undefined){ const ph = loadPhotos(); ph.splice(+b.dataset.del,1); store('xx_photos', JSON.stringify(ph)); openAlbum(); }
+    if(b.dataset.album) openAlbum();
+  });
+}
+function openAlbum(){
+  const ph = loadPhotos();
+  openModal(`<div class="modal-head"><h2>相册</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>
+    ${ph.length ? `<div class="album">${ph.map((u,i)=>`<button data-view="${i}" aria-label="看第 ${i+1} 张照片"><img src="${u}" alt=""></button>`).join('')}</div>` : '<p class="tip">还没有照片。点右上角的相机拍一张吧！</p>'}`, b=>{
+    if(b && b.dataset.view !== undefined){ const i = +b.dataset.view; showPhoto(ph[i], false, i); }
+  });
+}
+
 /* ---------------- editor (new resident) ---------------- */
-let editorOpen = false, draft = null, pvRenderer = null, pvScene = null, pvCam = null, pvModel = null;
-function openEditor(){
+let editorOpen = false, draft = null, pvRenderer = null, pvScene = null, pvCam = null, pvModel = null, editing = null;
+function openEditor(r){
+  editing = r || null;
+  if(r){ const d = r.d; draft = {name:d.name, look:Object.assign({}, d.look), pers:d.pers, catch:d.catch||'', voice:Object.assign({}, d.voice||newVoice()), slot:d.slot}; sfx.pop(); renderEditor(); return; }
   const used = new Set(residents.map(r=>r.d.slot));
   const free = SLOTS.map((_,i)=>i).filter(i=>!used.has(i));
   if(!free.length){ toast('小岛住满啦（最多 8 位居民）'); return; }
   sfx.pop();
   const usedNames = new Set(residents.map(r=>r.d.name));
-  draft = {name: pick(NAMES.filter(n=>!usedNames.has(n)).concat(['新朋友'])), look:newLook(), pers:pick(Object.keys(PERS)), slot:free[0], catch:pick(CATCHES)};
+  draft = {name: pick(NAMES.filter(n=>!usedNames.has(n)).concat(['新朋友'])), look:newLook(), pers:pick(Object.keys(PERS)), slot:free[0], catch:pick(CATCHES), voice:newVoice()};
   renderEditor(); editorOpen = true;
 }
 function renderEditor(){
-  openModal(`<div class="modal-head"><h2>来了一位新居民</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>
+  openModal(`<div class="modal-head"><h2>${editing ? '换个新造型' : '来了一位新居民'}</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>
     <div class="editor">
       <div class="pv-wrap"><div id="pvSlot"></div><button class="toy pill-btn" data-rand="1">🎲 随机一下</button></div>
       <div id="edOpts"></div>
     </div>
-    <button class="toy big-go" data-go="1">搬进小岛！</button>`, editorClick);
+    <button class="toy big-go" data-go="1">${editing ? '就这样吧！' : '搬进小岛！'}</button>`, editorClick);
   editorOpen = true; setupPreview(); renderEdOpts();
 }
 function renderEdOpts(){
@@ -1258,6 +1409,7 @@ function renderEdOpts(){
   $('#edOpts').innerHTML = `
         <div class="opt"><label for="nameInput">名字</label><div class="name-row"><input id="nameInput" maxlength="6" value="${esc(draft.name)}" autocomplete="off"></div></div>
         <div class="opt"><label for="catchInput">口头禅</label><div class="name-row"><input id="catchInput" maxlength="5" value="${esc(draft.catch)}" autocomplete="off"></div></div>
+        <div class="opt"><span class="lb">声音</span><div class="voice-row"><label>低<input type="range" id="pitchIn" min="0.5" max="2" step="0.1" value="${draft.voice.pitch}">高</label><label>慢<input type="range" id="rateIn" min="0.6" max="1.5" step="0.1" value="${draft.voice.rate}">快</label><button class="toy pill-btn" data-try="1">🔈 试听</button></div></div>
         <div class="opt"><span class="lb">肤色</span><div class="sw-row">${sw('skin',SKINS)}</div></div>
         <div class="opt"><span class="lb">发型</span><div class="sw-row">${chips('hair',HAIRS)}</div></div>
         <div class="opt"><span class="lb">发色</span><div class="sw-row">${sw('hairColor',HAIR_COLORS)}</div></div>
@@ -1266,10 +1418,25 @@ function renderEdOpts(){
         <div class="opt"><span class="lb">性格</span><div class="sw-row">${chips('pers',Object.entries(PERS).map(([id,n])=>({id,n})),true)}</div></div>`;
 }
 function editorClick(b, e){
-    if(!b){ if(e.target.id==='nameInput') draft.name = e.target.value; if(e.target.id==='catchInput') draft.catch = e.target.value; return; }
+    if(!b){ const id = e.target.id;
+      if(id==='nameInput') draft.name = e.target.value;
+      if(id==='catchInput') draft.catch = e.target.value;
+      if(id==='pitchIn') draft.voice.pitch = +e.target.value;
+      if(id==='rateIn') draft.voice.rate = +e.target.value;
+      return; }
+    if(b.dataset.try){ speakWith(draft.voice, `我是${draft.name||'新朋友'}，${pick(TALK[draft.pers])}，${draft.catch||''}`); return; }
+    if(b.dataset.go && editing){
+      const r = editing, d = r.d; editing = null;
+      d.name = ((draft.name||'').trim() || d.name).slice(0,6); d.look = draft.look; d.pers = draft.pers; d.catch = (draft.catch||'').trim().slice(0,5) || d.catch; d.voice = draft.voice;
+      closeModal(); rebuildChar(r); buildHouse(r); save(); sfx.happy();
+      toast(`${d.name} 换了新造型！`, 'gold'); cam.goal.copy(r.p.root.position);
+      if(r.state!=='home') beHappy(r,'✨',1.8);
+      r.say = '嘿嘿，好看吗？' + d.catch; r.spoken = r.say; speakWith(d.voice, r.say);
+      return;
+    }
     if(b.dataset.go){
       const name = (draft.name||'').trim() || '新朋友';
-      const d = makeResData(name.slice(0,6), draft.look, draft.pers, draft.slot); d.catch = (draft.catch||'').trim().slice(0,5) || pick(CATCHES);
+      const d = makeResData(name.slice(0,6), draft.look, draft.pers, draft.slot); d.catch = (draft.catch||'').trim().slice(0,5) || pick(CATCHES); d.voice = draft.voice;
       closeModal(); const r = addResident(d, true);
       save(); sfx.happy(); toast(`欢迎 ${d.name} 搬进心心小岛！`, 'gold'); logNews(`🏠 ${d.name} 搬进了小岛`);
       cam.goal.copy(r.p.root.position); confetti(scene, r.p.root.position); if(!isNight()) beHappy(r,'👋',2);
@@ -1437,7 +1604,8 @@ $('#bShop').onclick = ()=>{ sfx.pop(); openShop(); };
 $('#bFriends').onclick = ()=>{ sfx.pop(); openFriends(false); };
 $('#newsBtn').onclick = ()=>{ sfx.pop(); openNews(); };
 $('#bSleep').onclick = ()=>{ sfx.pop(); S.hour = 5.99; };
-$('#soundBtn').onclick = ()=>{ soundOn = !soundOn; store('xx_sound', soundOn?'1':'0'); $('#soundBtn').textContent = soundOn?'🔊':'🔈'; ac(); if(soundOn) sfx.pop(); };
+$('#photoBtn').onclick = ()=>takePhoto();
+$('#soundBtn').onclick = ()=>{ if(soundOn && window.speechSynthesis) try{ speechSynthesis.cancel(); }catch(e){} soundOn = !soundOn; store('xx_sound', soundOn?'1':'0'); $('#soundBtn').textContent = soundOn?'🔊':'🔈'; ac(); if(soundOn) sfx.pop(); };
 $('#soundBtn').textContent = soundOn ? '🔊' : '🔈';
 
 /* ---------------- world lifecycle ---------------- */
@@ -1471,7 +1639,7 @@ function frame(dt, t){
   barT += dt; if(barT > .4){ refreshBars(); barT = 0; }
   residents.forEach(r=>updateResident(r, dt, t));
   updateEvent(dt);
-  updateParticles(dt);
+  updateParticles(dt); updateFireworks(dt);
   if(mode==='island'){
     if(selected) cam.goal.copy(selected.p.root.position);
     cam.target.lerp(cam.goal, Math.min(1, dt*3));
@@ -1493,10 +1661,10 @@ function frame(dt, t){
 S = loadState();
 S.inv = Object.assign({food:{},acc:{},furn:{}}, S.inv||{});
 if(!S.log) S.log = [];
-S.residents.forEach(d=>{ if(!d.catch) d.catch = pick(CATCHES); if(d.partner===undefined) d.partner = null; });
+S.residents.forEach(d=>{ if(!d.catch) d.catch = pick(CATCHES); if(d.partner===undefined) d.partner = null; if(!d.voice) d.voice = newVoice(); });
 S.residents.forEach(d=>addResident(d,false));
 updateCoins(); updateNewsDot(); onResize(); applySky(); loop();
-if(/[?&]debug\b/.test(location.search)) window.__isle = {get S(){ return S; }, get residents(){ return residents; }, get ev(){ return ev; }, step(secs){ for(let i=0;i<secs*30;i++){ simT += 1/30; frame(1/30, simT); } }, select, startEvent, morning, enterRoom, openNews, showDream, byId};
+if(/[?&]debug\b/.test(location.search)) window.__isle = {get S(){ return S; }, get residents(){ return residents; }, get ev(){ return ev; }, openRPS, takePhoto, openEditor, step(secs){ for(let i=0;i<secs*30;i++){ simT += 1/30; frame(1/30, simT); } }, select, startEvent, morning, enterRoom, openNews, showDream, byId};
 setTimeout(()=>toast('点一点小人，看看他们想要什么吧！'), 600);
 setTimeout(()=>toast('点房子可以进屋装扮哦'), 3800);
 setTimeout(()=>toast('居民会交朋友、吵架、谈恋爱……多留意他们的心愿 💘'), 7000);
