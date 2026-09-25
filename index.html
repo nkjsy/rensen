@@ -321,7 +321,7 @@ let selected = null;
 let mode = 'island';
 let soundOn = store('xx_sound') !== '0';
 
-function newVoice(){ return {pitch:Math.round(rand(.8,1.6)*10)/10, rate:Math.round(rand(.9,1.2)*10)/10}; }
+function newVoice(){ return {pitch:Math.round(rand(.7,1.6)*10)/10, rate:Math.round(rand(.85,1.2)*100)/100, seed:Math.random(), name:null}; }
 function newLook(){ return {skin:pick(SKINS), hair:pick(HAIRS).id, hairColor:pick(HAIR_COLORS), shirt:pick(SHIRTS), eyes:pick(EYES).id}; }
 const ri = (a,b) => a + Math.floor(Math.random()*(b-a+1));
 function traitsFor(pers){
@@ -369,31 +369,82 @@ function save(){ try{ S.residents = residents.map(r=>r.d); store('xx_save', JSON
 
 /* ---------------- audio ---------------- */
 let actx = null;
-function ac(){ if(!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return actx; }
-function tone(f, dur=.12, type='sine', vol=.12, when=0){
+let audioOut = null;
+function ac(){
+  if(!actx){ try{
+    actx = new (window.AudioContext||window.webkitAudioContext)();
+    // soft master chain: gentle low-pass + compressor + a touch of room echo, so nothing sounds harsh
+    const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200; lp.Q.value = .5;
+    const comp = actx.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3;
+    const dl = actx.createDelay(); dl.delayTime.value = .09; const fb = actx.createGain(); fb.gain.value = .18; const wet = actx.createGain(); wet.gain.value = .16;
+    lp.connect(comp); comp.connect(actx.destination);
+    lp.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(comp);
+    audioOut = lp;
+  }catch(e){} }
+  if(actx && actx.state==='suspended') try{ actx.resume(); }catch(e){}
+  return actx;
+}
+function tone(f, dur=.12, type='sine', vol=.12, when=0, glide=0){
   if(!soundOn) return; const c = ac(); if(!c) return;
   const t = c.currentTime + when, o = c.createOscillator(), g = c.createGain();
-  o.type = type; o.frequency.setValueAtTime(f, t);
-  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t+.01); g.gain.exponentialRampToValueAtTime(.001, t+dur);
-  o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+dur+.02);
+  o.type = type; o.frequency.setValueAtTime(f, t); if(glide) o.frequency.exponentialRampToValueAtTime(Math.max(40, f*glide), t+dur);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t+.012); g.gain.exponentialRampToValueAtTime(.001, t+dur);
+  o.connect(g); g.connect(audioOut || c.destination); o.start(t); o.stop(t+dur+.02);
+}
+function noise(dur=.08, vol=.05, when=0, freq=1800){
+  if(!soundOn) return; const c = ac(); if(!c) return;
+  const t = c.currentTime + when, n = Math.floor(c.sampleRate*dur), buf = c.createBuffer(1, n, c.sampleRate), ch = buf.getChannelData(0);
+  for(let i=0;i<n;i++) ch[i] = (Math.random()*2-1) * (1 - i/n);
+  const src = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain(); src.buffer = buf; bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = 1.2; g.gain.value = vol;
+  src.connect(bp); bp.connect(g); g.connect(audioOut || c.destination); src.start(t);
 }
 const sfx = {
-  pop(){ tone(660,.08,'triangle',.12); tone(990,.1,'triangle',.08,.05); },
-  coin(){ tone(988,.08,'square',.05); tone(1319,.18,'square',.05,.07); },
-  happy(){ [523,659,784,1047].forEach((f,i)=>tone(f,.16,'triangle',.1,i*.08)); },
-  chat(){ tone(rand(500,800),.06,'sine',.04); tone(rand(500,900),.06,'sine',.04,.08); },
-  munch(){ tone(220,.05,'square',.04); tone(180,.05,'square',.04,.1); tone(240,.05,'square',.04,.2); },
-  boing(){ const c=ac(); if(!soundOn||!c) return; const o=c.createOscillator(), g=c.createGain(), t=c.currentTime; o.type='sine'; o.frequency.setValueAtTime(300,t); o.frequency.exponentialRampToValueAtTime(700,t+.15); g.gain.setValueAtTime(.1,t); g.gain.exponentialRampToValueAtTime(.001,t+.2); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+.22); }
+  pop(){ tone(740,.09,'sine',.1,0,1.25); tone(1110,.07,'sine',.04,.03); },
+  coin(){ tone(1319,.09,'triangle',.07); tone(1976,.22,'sine',.06,.07); tone(2637,.18,'sine',.02,.08); },
+  happy(){ [523,659,784,1047].forEach((f,i)=>{ tone(f,.22,'triangle',.07,i*.08); tone(f*2,.14,'sine',.02,i*.08); }); },
+  chat(v){ const b = 380 * (v && v.pitch ? 1 + (v.pitch-1)*.6 : rand(.9,1.3)); for(let i=0;i<3;i++) tone(b*rand(.85,1.25), .07, 'sine', .035, i*.09, rand(.9,1.15)); },
+  munch(){ [0,.11,.22].forEach(w=>noise(.06,.09,w,rand(500,900))); },
+  boing(){ tone(300,.22,'sine',.1,0,2.3); tone(600,.16,'sine',.03,.02,2); }
 };
 
 /* ---------------- voice ---------------- */
+// Chinese voices on this device, best-sounding first (natural / online / enhanced voices beat the robotic ones)
+let zhVoices = [];
+const GOOD_VOICE = /natural|neural|online|enhanced|premium|高品质/i, CANTONESE = /yue|HK|粤|粵/i;
+function loadVoices(){
+  if(!window.speechSynthesis) return;
+  const zh = speechSynthesis.getVoices().filter(v=>/^(zh|cmn)/i.test(v.lang) || /Chinese|中文|普通话|國語/i.test(v.name));
+  const score = v => (GOOD_VOICE.test(v.name) ? 0 : 10) + (/zh[-_]CN|cmn/i.test(v.lang) ? 0 : 3) + (CANTONESE.test(v.lang + v.name) ? 5 : 0);
+  zhVoices = zh.sort((a,b)=>score(a)-score(b));
+}
+if(window.speechSynthesis){ loadVoices(); try{ speechSynthesis.addEventListener('voiceschanged', loadVoices); }catch(e){ speechSynthesis.onvoiceschanged = loadVoices; } }
+const VOICE_CN = {huihui:'慧慧', kangkang:'康康', yaoyao:'瑶瑶', xiaoxiao:'晓晓', xiaoyi:'晓伊', yunxi:'云希', yunjian:'云健', yunyang:'云扬', yunxia:'云夏', xiaochen:'晓辰', xiaohan:'晓涵', xiaomeng:'晓梦', xiaomo:'晓墨', xiaorui:'晓睿', xiaoshuang:'晓双', xiaoxuan:'晓萱', xiaoyan:'晓颜', xiaoyou:'晓悠', yunfeng:'云枫', yunhao:'云皓', yunye:'云野', yunze:'云泽', tingting:'婷婷', meijia:'美佳', sinji:'善怡', lili:'莉莉', yushu:'语舒'};
+function voiceLabel(v, i){
+  const key = Object.keys(VOICE_CN).find(k=>v.name.toLowerCase().includes(k));
+  if(key) return VOICE_CN[key];
+  const n = v.name.replace(/Microsoft|Google|Apple|Online|Natural|Enhanced|Premium|\(.*?\)|- ?Chinese.*$/gi,' ').replace(/\s+/g,' ').trim();
+  return n || ('音色' + (i+1));
+}
+function pickVoice(voice){
+  if(!zhVoices.length) return null;
+  if(voice && voice.name){ const v = zhVoices.find(x=>x.name===voice.name); if(v) return v; }
+  // no explicit choice: spread residents over the good Mandarin voices by their voice seed
+  const pool = zhVoices.filter(v=>!CANTONESE.test(v.lang + v.name)), best = pool.filter(v=>GOOD_VOICE.test(v.name));
+  const use = best.length >= 2 ? best : (pool.length ? pool : zhVoices);
+  return use[Math.floor(((voice && voice.seed) || 0) * use.length) % use.length];
+}
+// keep pitch/rate in a natural band: big shifts make synthesized speech sound robotic
+function natPitch(v){ return clamp(1 + (((v && v.pitch) || 1) - 1)*.55, .7, 1.45); }
+function natRate(v){ return clamp(1 + (((v && v.rate) || 1) - 1)*.5, .82, 1.22); }
+function speechText(t){ return String(t).replace(/[🀀-🫿☀-➿⬀-⯿️‍⃣]/gu, '').replace(/[~～「」“”"]/g, '').replace(/…+/g, '，').replace(/\s+/g, ' ').trim(); }
 function speakWith(voice, text){
   if(!soundOn || !window.speechSynthesis || !text) return;
+  const clean = speechText(text); if(!clean) return;
   try{
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text); u.lang = 'zh-CN';
-    u.pitch = (voice && voice.pitch) || 1; u.rate = (voice && voice.rate) || 1;
-    const zh = speechSynthesis.getVoices().find(v=>/zh/i.test(v.lang)); if(zh) u.voice = zh;
+    const u = new SpeechSynthesisUtterance(clean), v = pickVoice(voice);
+    if(v){ u.voice = v; u.lang = v.lang; } else u.lang = 'zh-CN';
+    u.pitch = natPitch(voice); u.rate = natRate(voice); u.volume = 1;
     speechSynthesis.speak(u);
   }catch(e){}
 }
@@ -950,7 +1001,7 @@ function withCatch(line, c){ return line + (/[！？!?…~。]$/.test(line) ? ''
 
 function startChat(a,b){
   a.state = b.state = 'chat'; a.timer = b.timer = rand(4,6); a.target = b; b.target = a;
-  a.chatT = 0; b.chatT = .55; sfx.chat();
+  a.chatT = 0; b.chatT = .55; sfx.chat(a.d.voice); setTimeout(()=>sfx.chat(b.d.voice), 380);
 }
 function endChat(r, natural){
   const o = r.target; r.target = null;
@@ -1381,9 +1432,8 @@ function playSungNote(n, voice){
   if(!soundOn || !window.speechSynthesis) return;
   try{
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(n.ch); u.lang = 'zh-CN';
-    u.pitch = clamp(((voice && voice.pitch) || 1) * (.55 + (n.m-60)/20), .1, 2); u.rate = clamp(((voice && voice.rate) || 1)*1.5, .5, 2.5);
-    const zh = speechSynthesis.getVoices().find(v=>/zh/i.test(v.lang)); if(zh) u.voice = zh;
+    const u = new SpeechSynthesisUtterance(n.ch), v = pickVoice(voice); if(v){ u.voice = v; u.lang = v.lang; } else u.lang = 'zh-CN';
+    u.pitch = clamp(natPitch(voice) * (.6 + (n.m-60)/22), .3, 2); u.rate = clamp(natRate(voice)*1.45, .8, 2);
     speechSynthesis.speak(u);
   }catch(e){}
 }
@@ -1620,7 +1670,7 @@ function mnote(m, t, dur, type, vol){
 function musicTick(){
   const c = actx;
   if(!c || c.state!=='running' || !musicOn || !soundOn || musicHold || document.hidden || festivalNow()){ mNext = 0; return; }
-  if(!musicGain){ musicGain = c.createGain(); musicGain.gain.value = .55; musicGain.connect(c.destination); }
+  if(!musicGain){ musicGain = c.createGain(); musicGain.gain.value = .55; musicGain.connect(audioOut || c.destination); }
   const h = S.hour, night = h >= 21 || h < 6, eve = h >= 18 && !night, e8 = 60/(night ? 64 : eve ? 92 : 112)/2;
   if(mNext < c.currentTime) mNext = c.currentTime + .05;
   while(mNext < c.currentTime + .35){
@@ -2066,6 +2116,10 @@ function renderEditor(){
     <button class="toy big-go" data-go="1">${editing ? '就这样吧！' : '搬进小岛！'}</button>`, editorClick);
   editorOpen = true; setupPreview(); renderEdOpts();
 }
+function voiceChips(){
+  if(zhVoices.length < 2) return '';
+  return `<div class="sw-row" style="margin-top:8px"><button class="chip ${!draft.voice.name?'on':''}" data-vname="">自动</button>${zhVoices.slice(0,10).map((v,i)=>`<button class="chip ${draft.voice.name===v.name?'on':''}" data-vname="${esc(v.name)}">${esc(voiceLabel(v,i))}</button>`).join('')}</div>`;
+}
 function renderEdOpts(){
   const L = draft.look;
   const sw = (key, arr) => arr.map(c=>`<button class="sw ${L[key]===c?'on':''}" style="background:${c}" data-k="${key}" data-v="${c}" aria-label="${c}"></button>`).join('');
@@ -2073,7 +2127,7 @@ function renderEdOpts(){
   $('#edOpts').innerHTML = `
         <div class="opt"><label for="nameInput">名字</label><div class="name-row"><input id="nameInput" maxlength="6" value="${esc(draft.name)}" autocomplete="off"></div></div>
         <div class="opt"><label for="catchInput">口头禅</label><div class="name-row"><input id="catchInput" maxlength="5" value="${esc(draft.catch)}" autocomplete="off"></div></div>
-        <div class="opt"><span class="lb">声音</span><div class="voice-row"><label>低<input type="range" id="pitchIn" min="0.5" max="2" step="0.1" value="${draft.voice.pitch}">高</label><label>慢<input type="range" id="rateIn" min="0.6" max="1.5" step="0.1" value="${draft.voice.rate}">快</label><button class="toy pill-btn" data-try="1">🔈 试听</button></div></div>
+        <div class="opt"><span class="lb">声音</span><div class="voice-row"><label>低<input type="range" id="pitchIn" min="0.5" max="2" step="0.1" value="${draft.voice.pitch}">高</label><label>慢<input type="range" id="rateIn" min="0.6" max="1.5" step="0.1" value="${draft.voice.rate}">快</label><button class="toy pill-btn" data-try="1">🔈 试听</button></div>${voiceChips()}</div>
         <div class="opt"><span class="lb">肤色</span><div class="sw-row">${sw('skin',SKINS)}</div></div>
         <div class="opt"><span class="lb">发型</span><div class="sw-row">${chips('hair',HAIRS)}</div></div>
         <div class="opt"><span class="lb">发色</span><div class="sw-row">${sw('hairColor',HAIR_COLORS)}</div></div>
@@ -2089,6 +2143,7 @@ function editorClick(b, e){
       if(id==='rateIn') draft.voice.rate = +e.target.value;
       if(id.startsWith('tr_')){ draft.traits[id.slice(3)] = +e.target.value; draft.pers = persFromTraits(draft.traits); const po = $('#persOut'); if(po) po.textContent = persName({pers:draft.pers, traits:draft.traits}); }
       return; }
+    if(b.dataset.vname !== undefined){ draft.voice.name = b.dataset.vname || null; renderEdOpts(); speakWith(draft.voice, `我是${draft.name||'新朋友'}，${draft.catch||''}`); return; }
     if(b.dataset.try){ speakWith(draft.voice, `我是${draft.name||'新朋友'}，${pick(TALK[draft.pers])}，${draft.catch||''}`); return; }
     if(b.dataset.go && editing){
       const r = editing, d = r.d; editing = null;
@@ -2338,12 +2393,12 @@ function frame(dt, t){
 S = loadState();
 S.inv = Object.assign({food:{},acc:{},furn:{},cloth:{}}, S.inv||{});
 if(!S.log) S.log = [];
-S.residents.forEach(d=>{ if(!d.catch) d.catch = pick(CATCHES); if(d.partner===undefined) d.partner = null; if(!d.voice) d.voice = newVoice(); if(!d.traits){ d.traits = traitsFor(d.pers); } if(!d.bday) d.bday = ri(1,YEAR); if(!d.outfit) d.outfit = 'tee'; if(!d.songs) d.songs = [songCopy(pick(SONG_BOOK))]; });
+S.residents.forEach(d=>{ if(!d.catch) d.catch = pick(CATCHES); if(d.partner===undefined) d.partner = null; if(!d.voice) d.voice = newVoice(); if(d.voice.seed==null) d.voice.seed = Math.random(); if(!d.traits){ d.traits = traitsFor(d.pers); } if(!d.bday) d.bday = ri(1,YEAR); if(!d.outfit) d.outfit = 'tee'; if(!d.songs) d.songs = [songCopy(pick(SONG_BOOK))]; });
 if(S.visitor && (S.hour >= 20 || S.hour < 6)) S.visitor = null;
 S.residents.forEach(d=>addResident(d,false));
 spawnVisitor();
 updateCoins(); updateNewsDot(); onResize(); applySky(); loop();
-if(/[?&]debug\b/.test(location.search)) window.__isle = {get S(){ return S; }, get residents(){ return residents; }, get ev(){ return ev; }, get show(){ return show; }, get visitor(){ return visitor; }, quarrel, rebuildChar, cam, music(){ return {mStep, musicOn, soundOn, ctx: actx && actx.state}; }, startParty, startConcert, openConcert, openAsk, openVisitor, spawnVisitor, makeVisitor, applyLv, openPark, openCafe, openLoc, songSeq, openShop, openRPS, takePhoto, openEditor, step(secs){ for(let i=0;i<secs*30;i++){ simT += 1/30; frame(1/30, simT); } }, select, startEvent, morning, enterRoom, openNews, showDream, byId};
+if(/[?&]debug\b/.test(location.search)) window.__isle = {get S(){ return S; }, get residents(){ return residents; }, get ev(){ return ev; }, get show(){ return show; }, get visitor(){ return visitor; }, quarrel, rebuildChar, cam, music(){ return {mStep, musicOn, soundOn, ctx: actx && actx.state}; }, voices(){ return zhVoices.map(v=>v.name+" | "+v.lang); }, pickVoice, speechText, natPitch, startParty, startConcert, openConcert, openAsk, openVisitor, spawnVisitor, makeVisitor, applyLv, openPark, openCafe, openLoc, songSeq, openShop, openRPS, takePhoto, openEditor, step(secs){ for(let i=0;i<secs*30;i++){ simT += 1/30; frame(1/30, simT); } }, select, startEvent, morning, enterRoom, openNews, showDream, byId};
 setTimeout(()=>toast('点一点小人，看看他们想要什么吧！'), 600);
 setTimeout(()=>toast('点房子可以进屋装扮哦'), 3800);
 setTimeout(()=>toast('居民会交朋友、吵架、谈恋爱……多留意他们的心愿 💘'), 7000);
