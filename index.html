@@ -66,9 +66,9 @@ button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 .want{display:flex;align-items:center;gap:10px;background:#FFF0C9;border:2px dashed var(--sun-d);border-radius:14px;padding:8px 12px;font-size:15px;margin-bottom:12px}
 .want .big{font-size:28px}
 .want.none{background:var(--panel-2);border-color:var(--line);color:var(--ink-soft)}
-.acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:10px}
-.act{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px 8px;font-size:16px}
-.act .ic{font-size:28px;line-height:1}
+.acts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.act{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 6px;font-size:14px}
+.act .ic{font-size:24px;line-height:1}
 .act.c1{background:#FFE1B8}.act.c2{background:#FFD3DA}.act.c3{background:#D5F3E8}.act.c4{background:#DCE8FF}.act.c5{background:#EADFFF}
 .chooser{margin-top:12px;padding-top:12px;border-top:2px dashed var(--line)}
 .chooser h3{margin:0 0 8px;font-family:var(--display);font-weight:400;font-size:18px}
@@ -110,9 +110,43 @@ button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 .chip{padding:6px 12px 7px;border-radius:14px;border:3px solid var(--ink);background:#fff;font-size:15px;box-shadow:0 3px 0 var(--ink)}
 .chip.on{background:var(--coral);color:#fff}
 .name-row{display:flex;gap:8px}
-#nameInput{flex:1;min-width:0;font-family:var(--display);font-size:20px;padding:8px 12px;border:3px solid var(--ink);border-radius:14px;background:#fff;color:var(--ink)}
+#nameInput,#catchInput{flex:1;min-width:0;font-family:var(--display);font-size:20px;padding:8px 12px;border:3px solid var(--ink);border-radius:14px;background:#fff;color:var(--ink)}
 .big-go{width:100%;padding:12px;font-size:22px;background:var(--coral);color:#fff;margin-top:6px}
 
+/* sheet extras */
+.quote{margin-top:10px;background:#fff;border:2px solid var(--line);border-radius:14px;padding:6px 12px;font-size:15px;position:relative}
+.quote:empty{display:none}
+.want .wact{margin-left:auto;padding:6px 12px 7px;font-size:15px;background:var(--coral);color:#fff;flex:none}
+.voice-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:14px}
+.voice-row label{display:flex;align-items:center;gap:6px}
+.voice-row input[type=range]{width:110px;accent-color:var(--coral)}
+/* news */
+.news-top{display:flex;justify-content:space-between;align-items:center;background:var(--ink);color:#fff;border-radius:16px;padding:10px 14px;font-family:var(--display);font-size:20px}
+.live{background:var(--coral);border-radius:8px;padding:2px 10px}
+.news-weather{margin:12px 2px;font-size:16px}
+.news-list{list-style:none;padding:0;margin:0 0 12px;display:flex;flex-direction:column;gap:8px}
+.news-list li{background:#fff;border:2px solid var(--line);border-radius:14px;padding:8px 12px;display:flex;gap:10px;align-items:center;font-size:16px}
+.ne{font-size:24px;flex:none}
+.news-fest{margin-bottom:12px;background:#FFE9A8;border:2px dashed var(--sun-d);border-radius:14px;padding:8px 12px;font-size:16px}
+/* rps */
+.rps-board{display:flex;align-items:center;justify-content:space-around;background:linear-gradient(#BFEFFF,#E8FAFF);border:3px solid var(--ink);border-radius:20px;padding:14px 8px}
+.side{display:flex;flex-direction:column;align-items:center;gap:2px;font-family:var(--display);font-size:18px}
+.hand{font-size:64px;line-height:1.15;animation:pop .3s cubic-bezier(.3,1.6,.5,1)}
+.pts{font-size:28px;color:var(--coral-d);font-variant-numeric:tabular-nums}
+.vs{font-family:var(--display);font-size:26px;color:var(--ink-soft)}
+.rps-msg{text-align:center;font-family:var(--display);font-size:20px;margin:12px 0}
+.rps-hands{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rps-btn{display:flex;flex-direction:column;align-items:center;font-size:16px;padding:10px 4px 8px}
+.rps-btn span{font-size:40px;line-height:1.1}
+/* photos */
+.photo{width:100%;border:3px solid var(--ink);border-radius:16px;display:block}
+.tip{font-size:13px;color:var(--ink-soft);margin:8px 0 12px}
+.row-btns{display:flex;gap:10px;flex-wrap:wrap}
+.album{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.album button{padding:0;border-radius:12px;overflow:hidden;border:3px solid var(--ink);box-shadow:0 3px 0 var(--ink);background:#fff}
+.album img{width:100%;display:block}
+.flash{position:fixed;inset:0;background:#fff;z-index:40;pointer-events:none;animation:fade .5s forwards}
+.lk.r4{background:#FFD3E6;border-color:#FF8FB1}
 /* friends */
 .fr-list{display:flex;flex-direction:column;gap:12px}
 .fr{border:3px solid var(--ink);border-radius:18px;background:#fff;padding:10px 12px;display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start}
@@ -144,6 +178,7 @@ button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
   <div class="brand"><h1>心心小岛</h1><div class="clock" id="clock">第1天 · 早上 08:00</div></div>
   <div class="hud-right">
     <div class="coins toy" aria-label="金币"><span class="coin"></span><span id="coinNum">0</span></div>
+    <button class="toy icon-btn" id="photoBtn" aria-label="拍照">📷</button>
     <button class="toy icon-btn" id="soundBtn" aria-label="声音开关">🔊</button>
   </div>
 </div>
@@ -197,6 +232,15 @@ const FURN = {
 const WALLS = ['#FFE3EA','#FFF1C9','#DDF3E8','#DDE9FF','#EDE2FF','#FFFFFF'];
 const FLOORS = ['#E8C29A','#C99A6E','#F3E3C8','#BFD9C4','#D8C6E8','#9FB5CC'];
 const CHAT_TOPICS = ['💬','🎵','🍰','⚽','🌈','😂','🐱','⭐','🌸','🎨','🐶','🍦'];
+const PERS_LINES = {
+  lively:['嗨嗨！今天也超开心！','我们去玩吧！','我跑得可快啦！','今天想去海边看看！'],
+  gentle:['你好呀，今天天气真好。','见到你真高兴。','要不要一起喝杯茶？','花开得好漂亮呀。'],
+  cool:['哟。','嗯，还不错。','我在想事情。','今天的风，有点酷。'],
+  funny:['哈哈，你猜我刚才看到了什么？','嘿嘿，我给你讲个笑话吧！','我今天把袜子穿反啦！','你看我的鬼脸！']
+};
+const CATCHES = ['哒哟','嘿嘿','没问题','哇塞','啦啦啦','好耶','喵','呀呼'];
+const DREAMS = ['梦见自己变成了一朵软软的云','梦见和大家一起吃了一个超大的蛋糕','梦见在海里和鲸鱼赛跑','梦见小岛上下起了糖果雨','梦见自己会飞，飞到了月亮上','梦见和好朋友一起去森林探险','梦见养了一只会说话的小猫','梦见自己当上了小岛岛主'];
+const HANDS = [{e:'✊',n:'石头'},{e:'✌️',n:'剪刀'},{e:'🖐️',n:'布'}]; // i beats (i+1)%3
 const SLOT_R = 13.5;
 const SLOTS = Array.from({length:8},(_,i)=>{ const a=i*Math.PI/4+Math.PI/8; return {a, x:Math.cos(a)*SLOT_R, z:Math.sin(a)*SLOT_R}; });
 
@@ -207,12 +251,13 @@ let selected = null;
 let mode = 'island';
 let soundOn = store('xx_sound') !== '0';
 
+function newVoice(){ return {pitch:Math.round(rand(.8,1.6)*10)/10, rate:Math.round(rand(.9,1.2)*10)/10}; }
 function newLook(){ return {skin:pick(SKINS), hair:pick(HAIRS).id, hairColor:pick(HAIR_COLORS), shirt:pick(SHIRTS), eyes:pick(EYES).id}; }
 function makeResData(name, look, pers, slot){
   const foods = Object.keys(FOODS);
   const fav = pick(foods); let dislike = pick(foods); while(dislike===fav) dislike = pick(foods);
   return { id:'r'+Date.now().toString(36)+Math.floor(Math.random()*1e4), name, look, pers, fav, dislike,
-    mood:70, full:80, level:1, xp:0, friends:{}, acc:null, slot, want:null,
+    mood:70, full:80, level:1, xp:0, friends:{}, acc:null, slot, want:null, partner:null, catch:pick(CATCHES), voice:newVoice(),
     room:{ wall:pick(WALLS), floor:pick(FLOORS), items:[{type:'bed',x:0,z:0,rot:1},{type:'rug',x:3,z:3,rot:0}] } };
 }
 function freshState(){
@@ -224,6 +269,7 @@ function freshState(){
   d.acc = 'glasses';
   a.friends[b.id]=b.friends[a.id]=22;
   c.friends[d.id]=d.friends[c.id]=8;
+  a.friends[c.id]=c.friends[a.id]=66;
   b.full = 30; b.want = {type:'food'};
   c.want = {type:'acc', item:'bow'};
   a.want = {type:'pat'};
@@ -254,6 +300,24 @@ const sfx = {
   munch(){ tone(220,.05,'square',.04); tone(180,.05,'square',.04,.1); tone(240,.05,'square',.04,.2); },
   boing(){ const c=ac(); if(!soundOn||!c) return; const o=c.createOscillator(), g=c.createGain(), t=c.currentTime; o.type='sine'; o.frequency.setValueAtTime(300,t); o.frequency.exponentialRampToValueAtTime(700,t+.15); g.gain.setValueAtTime(.1,t); g.gain.exponentialRampToValueAtTime(.001,t+.2); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+.22); }
 };
+
+/* ---------------- voice ---------------- */
+function speakWith(voice, text){
+  if(!soundOn || !window.speechSynthesis) return;
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text); u.lang = 'zh-CN';
+    u.pitch = (voice && voice.pitch) || 1; u.rate = (voice && voice.rate) || 1;
+    const zh = speechSynthesis.getVoices().find(v=>/zh/i.test(v.lang)); if(zh) u.voice = zh;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function say(r, text, noCatch){
+  const full = text + (!noCatch && r.d.catch && Math.random() < .6 ? '，' + r.d.catch + '！' : '');
+  r.lastLine = full; speakWith(r.d.voice, full);
+  if(selected === r){ const q = document.getElementById('quote'); if(q) q.textContent = '“' + full + '”'; }
+  return full;
+}
 
 /* ---------------- three basics ---------------- */
 const canvas = $('#game');
@@ -557,18 +621,28 @@ function randomSpot(){
 }
 function addResident(d, fresh){
   const p = buildChar(d.look, d.acc);
-  const r = { d, p, state:'idle', timer:rand(.5,2), dest:null, phase:0, target:null, bubble:null, bubbleKey:'', chatTopic:0, chatT:0, sadT:0, happyT:0, speed: d.pers==='lively'?2.6:2.1 };
-  const label = sprite(labelTex(d.name), 1.5, .42); label.position.y = 2.72; p.root.add(label); r.label = label;
-  const b = sprite(bubbleTex('💬','n'), 1.05, 1.05); b.position.y = 3.55; b.visible = false; p.root.add(b); r.bubble = b;
-  const start = fresh ? doorPoint(d.slot) : randomSpot();
-  p.root.position.copy(start); p.root.scale.setScalar(1.25);
-  p.hit.userData.pick = {type:'res', r};
+  const r = { d, p, state:'idle', timer:rand(.5,2), dest:null, phase:0, target:null, bubble:null, bubbleKey:'', chatTopic:0, chatT:0, speed: d.pers==='lively'?2.6:2.1 };
+  dressChar(r);
+  p.root.position.copy(fresh ? doorPoint(d.slot) : randomSpot());
   scene.add(p.root);
   residents.push(r);
   buildHouse(r);
   if(isNight()){ r.state='home'; p.root.visible = false; }
   return r;
 }
+function dressChar(r){
+  const p = r.p;
+  const label = sprite(labelTex(r.d.name), 1.5, .42); label.position.y = 2.72; p.root.add(label); r.label = label;
+  const b = sprite(bubbleTex('💬','n'), 1.05, 1.05); b.position.y = 3.55; b.visible = false; p.root.add(b); r.bubble = b; r.bubbleKey = '';
+  p.root.scale.setScalar(1.25); p.hit.userData.pick = {type:'res', r};
+}
+function rebuildChar(r){
+  const old = r.p.root, p = buildChar(r.d.look, r.d.acc);
+  p.root.position.copy(old.position); p.root.rotation.y = old.rotation.y; p.root.visible = old.visible;
+  scene.remove(old); r.p = p; dressChar(r); scene.add(p.root);
+}
+function resById(id){ return residents.find(x=>x.d.id===id); }
+function pushNews(e, t){ S.news = S.news || []; S.news.push({e, t}); if(S.news.length > 8) S.news.shift(); }
 function setBubble(r, emoji, style='n'){
   const k = emoji ? emoji+style : '';
   if(k === r.bubbleKey) return; r.bubbleKey = k;
@@ -582,6 +656,9 @@ function wantEmoji(w){
   if(w.type==='furn') return FURN[w.item].e;
   if(w.type==='friend') return '👫';
   if(w.type==='pat') return '🤚';
+  if(w.type==='confess') return '💌';
+  if(w.type==='makeup') return '🥺';
+  if(w.type==='play') return '✊';
   return '❗';
 }
 function wantText(r){
@@ -591,9 +668,20 @@ function wantText(r){
   if(w.type==='furn') return `想在家里放一个${FURN[w.item].n}`;
   if(w.type==='friend') return '想认识一个新朋友';
   if(w.type==='pat') return '想要摸摸头';
+  const o = w.target && resById(w.target), on = o ? o.d.name : '那个人';
+  if(w.type==='confess') return `偷偷喜欢上了${on}，想去告白`;
+  if(w.type==='makeup') return `和${on}吵架了，想和好`;
+  if(w.type==='play') return '想和你玩猜拳';
   return '';
 }
+function wantLine(r){
+  const w = r.d.want; if(!w) return pick(PERS_LINES[r.d.pers]);
+  const o = w.target && resById(w.target), on = o ? o.d.name : '';
+  return ({food: w.item ? `好想吃${FOODS[w.item].n}呀` : '我肚子饿啦，想吃东西', acc: w.item ? `我好想要一个${ACCS[w.item].n}` : '想要礼物', furn: w.item ? `家里要是有个${FURN[w.item].n}就好了` : '想要新家具',
+    friend:'我想认识新朋友！', pat:'可以摸摸我的头吗？', confess:`其实……我喜欢${on}，好紧张呀`, makeup:`我和${on}吵架了，好难过`, play:'陪我玩猜拳好不好？'})[w.type] || '你好呀';
+}
 function isFree(o){ return o && o.p.root.visible && (o.state==='idle' || o.state==='walk') && o!==selected; }
+function relName(a, b){ return a.d.partner===b.d.id ? '恋人' : friendLevel(a.d.friends[b.d.id]).n; }
 function friendLevel(v){ v=v||0; if(v>=85) return {rank:3,n:'最好的朋友',msg:'成了最好的朋友！'}; if(v>=50) return {rank:2,n:'好朋友',msg:'成了好朋友！'}; if(v>=15) return {rank:1,n:'朋友',msg:'成为了朋友！'}; return {rank:0,n:'刚认识'}; }
 function addFriend(a, b, delta){
   const before = a.d.friends[b.d.id]||0, after = clamp(before+delta,0,100);
@@ -601,6 +689,7 @@ function addFriend(a, b, delta){
   const lb = friendLevel(before), la = friendLevel(after);
   if(la.rank > lb.rank){
     toast(`${a.d.name} 和 ${b.d.name} ${la.msg}`, 'pink'); addCoins(la.rank*10);
+    if(la.rank >= 2) pushNews(la.rank>=3?'💞':'💖', `${a.d.name}和${b.d.name}${la.msg}`);
     const mid = a.p.root.position.clone().add(b.p.root.position).multiplyScalar(.5); mid.y = 2.4;
     burst(scene, mid, '💖', 8); sfx.happy();
   }
@@ -613,44 +702,106 @@ function startChat(a,b){
 }
 function endChat(r){
   const o = r.target; r.target = null;
+  r.state = 'idle'; r.timer = rand(1,2.5);
   if(o && o.state==='chat' && o.target===r){
     o.target = null; o.state = 'idle'; o.timer = rand(1,2);
+    if(Math.random() < .07 && r.d.partner!==o.d.id && (r.d.friends[o.d.id]||0) < 80 && !r.d.want && !o.d.want && r!==selected && o!==selected){ quarrel(r, o); return; }
     addFriend(r, o, 4 + compat(r,o) + Math.floor(rand(0,3)));
     r.d.mood = clamp(r.d.mood+4,0,100); o.d.mood = clamp(o.d.mood+4,0,100);
     if((r.d.friends[o.d.id]||0) >= 15){ const mid = r.p.root.position.clone().add(o.p.root.position).multiplyScalar(.5); mid.y = 2.6; burst(scene, mid, '❤️', 2, .3); }
   }
-  r.state = 'idle'; r.timer = rand(1,2.5);
+}
+function emote(r, state, emoji, secs){ if(r.state==='chat') endChat(r); r.state = state; r.timer = secs; r.happyEmoji = emoji; r.dest = null; }
+function quarrel(a, b){
+  addFriend(a, b, -12);
+  [a,b].forEach(x=>{ x.d.mood = clamp(x.d.mood-8,0,100); emote(x,'angry','💢',2.4); });
+  const hurt = Math.random()<.5 ? a : b, other = hurt===a ? b : a;
+  hurt.d.want = {type:'makeup', target:other.d.id};
+  toast(`${a.d.name} 和 ${b.d.name} 吵架了……帮他们和好吧`);
+  pushNews('💢', `${a.d.name}和${b.d.name}吵了一架`);
+  tone(160,.2,'sawtooth',.05); tone(140,.25,'sawtooth',.05,.15);
+}
+function summon(r, o, kind){
+  if(o.state==='chat') endChat(o);
+  if(r.state==='chat') endChat(r);
+  o.state = 'wait'; o.timer = 30; o.target = r; o.dest = null;
+  r.state = 'walk'; r.target = o; r.dest = o.p.root.position.clone(); r.onArrive = kind;
+  cam.goal.copy(o.p.root.position);
+}
+function startScene(a, b, kind){
+  a.state = b.state = 'scene'; a.target = b; b.target = a;
+  a.sceneKind = kind; a.timer = 3.4; b.timer = 99;
+  a.sceneEmoji = kind==='confess' ? '💌' : '🙏'; b.sceneEmoji = kind==='confess' ? '😳' : '😶';
+  say(a, kind==='confess' ? `${b.d.name}，我……我喜欢你！` : `${b.d.name}，对不起，我们和好吧`, true);
+}
+function resolveScene(a){
+  const b = a.target, kind = a.sceneKind; a.sceneKind = null; a.target = null; if(b) b.target = null;
+  if(!b){ a.state = 'idle'; a.timer = 1; return; }
+  const mid = a.p.root.position.clone().add(b.p.root.position).multiplyScalar(.5); mid.y = 2.6;
+  if(kind==='makeup'){
+    addFriend(a, b, 20); a.d.want = null;
+    beHappy(a,'🤗',2.2); beHappy(b,'🤗',2.2); burst(scene, mid, '💛', 6);
+    say(b, '没关系，我们还是好朋友！', true);
+    toast(`${a.d.name} 和 ${b.d.name} 和好啦！`, 'pink'); pushNews('🤝', `${a.d.name}和${b.d.name}和好了`);
+    fulfil(a, 30); sfx.happy(); return;
+  }
+  const fr = a.d.friends[b.d.id]||0, chance = clamp(.45 + (fr-70)/60 + (compat(a,b)-1)*.06, .3, .95);
+  if(Math.random() < chance){
+    a.d.partner = b.d.id; b.d.partner = a.d.id; a.d.want = null; if(b.d.want && b.d.want.type==='confess') b.d.want = null;
+    addFriend(a, b, 10);
+    beHappy(a,'💞',2.8); beHappy(b,'💞',2.8); burst(scene, mid, '💗', 12, 1); confetti(scene, mid.clone().setY(0));
+    say(b, '我也喜欢你！', true);
+    toast(`${a.d.name} 和 ${b.d.name} 成为了恋人！`, 'pink'); pushNews('💑', `${a.d.name}向${b.d.name}告白成功，两人成为了恋人`);
+    fulfil(a, 60); sfx.happy();
+  } else {
+    a.d.mood = clamp(a.d.mood-15,0,100); a.d.want = {type:'pat'};
+    emote(a,'sad','💔',2.8); emote(b,'happy','🙇',1.6);
+    say(b, '谢谢你……不过我们还是做最好的朋友吧！', true);
+    toast(`${b.d.name} 说还想做好朋友……去摸摸 ${a.d.name} 的头安慰一下吧`);
+    pushNews('💔', `${a.d.name}鼓起勇气向${b.d.name}告白，可惜没有成功`);
+    tone(392,.25,'triangle',.08); tone(330,.3,'triangle',.08,.2); tone(262,.45,'triangle',.08,.45);
+  }
 }
 function decide(r){
   if(isNight()){ r.state = 'walk'; r.dest = doorPoint(r.d.slot); r.onArrive = 'home'; return; }
   if(r === selected){ r.state = 'idle'; r.timer = 1; return; }
+  if(festivalNow()){
+    if(!r.watching){ r.watching = true; r.state = 'walk'; r.dest = plazaSpot(); r.onArrive = null; r.target = null; return; }
+    r.state = 'idle'; r.timer = rand(3,5); return;
+  }
+  r.watching = false;
   const roll = Math.random(), chatty = r.d.pers==='lively'||r.d.pers==='funny' ? .45 : .32;
   if(roll < chatty){
     const others = residents.filter(o=>o!==r && isFree(o));
-    if(others.length){ r.state='walk'; r.target = pick(others); r.dest = r.target.p.root.position.clone(); r.onArrive = 'chat'; return; }
+    const lover = r.d.partner && others.find(o=>o.d.id===r.d.partner);
+    if(others.length){ r.state='walk'; r.target = lover && Math.random()<.5 ? lover : pick(others); r.dest = r.target.p.root.position.clone(); r.onArrive = 'chat'; return; }
   }
   if(roll < .8){ r.state='walk'; r.dest = randomSpot(); r.onArrive = null; r.target = null; return; }
   r.state = 'idle'; r.timer = rand(2,4);
 }
+function plazaSpot(){ const a = rand(0,6.28), rr = rand(5,7.5); const v = new T.Vector3(Math.cos(a)*rr,0,Math.sin(a)*rr); return EXCL.some(e=>Math.hypot(e.x-v.x,e.z-v.z)<e.r+.3) ? plazaSpot() : v; }
 function angleTo(from, to){ return Math.atan2(to.x-from.x, to.z-from.z); }
 function turnTo(obj, ang, k){ let d = ang - obj.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); obj.rotation.y += d*Math.min(1,k); }
 
 function animate(r, dt, t){
   const p = r.p; const st = r.state;
-  let bob = 0, armA = 0, legA = 0, headTilt = 0, raise = 0;
+  let bob = 0, armA = 0, legA = 0, headTilt = 0, raise = 0, nod = 0;
   if(st==='walk'){ r.phase += dt*r.speed*4.2; bob = Math.abs(Math.sin(r.phase))*.09; legA = Math.sin(r.phase)*.55; armA = Math.sin(r.phase)*.6; }
   else if(st==='chat'){ bob = Math.abs(Math.sin(t*6+r.d.slot))*.05; headTilt = Math.sin(t*3+r.d.slot)*.12; armA = Math.sin(t*5)*.25; }
   else if(st==='happy'){ bob = Math.abs(Math.sin(t*9))*.55; raise = 2.5; }
+  else if(st==='sad'){ nod = .4; }
+  else if(st==='angry'){ bob = Math.abs(Math.sin(t*14))*.1; raise = .9; headTilt = Math.sin(t*20)*.06; }
+  else if(st==='scene'){ bob = Math.abs(Math.sin(t*4))*.04; headTilt = Math.sin(t*2)*.15; nod = r.sceneKind ? .15 : 0; }
   else if(st==='eat'){ headTilt = 0; bob = Math.abs(Math.sin(t*10))*.03; p.mouth.scale.y = 1 + Math.abs(Math.sin(t*12))*1.4; }
   else { headTilt = Math.sin(t*1.3+r.d.slot)*.06; bob = Math.sin(t*2.2+r.d.slot)*.015; }
   if(st!=='eat') p.mouth.scale.y = 1;
   p.rig.position.y = bob;
-  p.head.rotation.z = headTilt;
+  p.head.rotation.z = headTilt; p.head.rotation.x = lerp(p.head.rotation.x, nod, .15);
   p.legs[0].rotation.x = legA; p.legs[1].rotation.x = -legA;
   p.arms[0].rotation.x = -armA; p.arms[1].rotation.x = armA;
   p.arms[0].rotation.z = lerp(p.arms[0].rotation.z, -.18 - raise, .2);
   p.arms[1].rotation.z = lerp(p.arms[1].rotation.z, .18 + raise, .2);
-  const happyFace = r.d.mood >= 35 || st==='happy';
+  const happyFace = (r.d.mood >= 35 && st!=='sad' && st!=='angry') || (st==='happy' && r.happyEmoji!=='😖');
   p.mouth.rotation.z = happyFace ? Math.PI : 0; p.mouth.position.y = happyFace ? -.2 : -.27;
   const bl = p.accSlot.children[0] && p.accSlot.children[0].userData.balloon; if(bl) bl.position.y = 1.35 + Math.sin(t*2)*.08;
 }
@@ -665,34 +816,47 @@ function updateResident(r, dt, t){
     if(r.onArrive==='chat'){
       if(!r.target || !isFree(r.target) || isNight()){ r.state='idle'; r.timer=.5; r.target=null; }
       else r.dest.copy(r.target.p.root.position);
+    } else if(r.onArrive==='confess' || r.onArrive==='makeup'){
+      if(!r.target || r.target.state!=='wait' || r.target.target!==r){ r.state='idle'; r.timer=.5; r.target=null; }
+      else r.dest.copy(r.target.p.root.position);
     }
     if(r.state==='walk'){
       const dx = r.dest.x-pos.x, dz = r.dest.z-pos.z, dist = Math.hypot(dx,dz);
-      const stopAt = r.onArrive==='chat' ? 1.35 : .15;
+      const stopAt = (r.onArrive==='chat' || r.onArrive==='confess' || r.onArrive==='makeup') ? 1.35 : .15;
       if(dist < stopAt){
         if(r.onArrive==='chat' && r.target){ startChat(r, r.target); }
+        else if((r.onArrive==='confess' || r.onArrive==='makeup') && r.target){ startScene(r, r.target, r.onArrive); }
         else if(r.onArrive==='home'){ r.state='home'; r.p.root.visible=false; if(selected===r) closeSheet(); }
         else { r.state='idle'; r.timer = rand(1.5,4); }
       } else {
-        const step = Math.min(dist, r.speed*dt); pos.x += dx/dist*step; pos.z += dz/dist*step;
+        let mx = dx/dist, mz = dz/dist;
+        for(const e of EXCL){ const ex = pos.x-e.x, ez = pos.z-e.z, ed = Math.hypot(ex,ez); if(ed < e.r+.4 && ed > 0){ const nx = ex/ed, nz = ez/ed, into = mx*nx + mz*nz; if(into < 0){ mx -= into*nx; mz -= into*nz; const l = Math.hypot(mx,mz); if(l < .25){ const sg = (dx*-nz + dz*nx) >= 0 ? 1 : -1; mx = -nz*sg; mz = nx*sg; } else { mx /= l; mz /= l; } } } }
+        const step = Math.min(dist, r.speed*dt); pos.x += mx*step; pos.z += mz*step;
         for(const e of EXCL){ const ex = pos.x-e.x, ez = pos.z-e.z, ed = Math.hypot(ex,ez); if(ed < e.r){ pos.x = e.x + ex/ed*e.r; pos.z = e.z + ez/ed*e.r; } }
-        turnTo(r.p.root, Math.atan2(dx,dz), dt*8);
+        turnTo(r.p.root, Math.atan2(mx,mz), dt*8);
       }
     }
   } else if(r.state==='chat'){
     if(r.target) turnTo(r.p.root, angleTo(pos, r.target.p.root.position), dt*8);
     r.chatT -= dt; if(r.chatT<=0){ r.chatT = 1.1; r.topic = pick(CHAT_TOPICS); }
     if(r.timer<=0 || !r.target) endChat(r);
-  } else if(r.state==='happy' || r.state==='eat'){
+  } else if(r.state==='wait' || r.state==='scene'){
+    if(r.target) turnTo(r.p.root, angleTo(pos, r.target.p.root.position), dt*8);
+    if(r.state==='scene' && r.sceneKind){ if(r.timer<=0) resolveScene(r); }
+    else if(r.timer<=0){ r.state='idle'; r.timer=1; r.target=null; }
+  } else if(r.state==='happy' || r.state==='eat' || r.state==='sad' || r.state==='angry'){
     if(r===selected) turnTo(r.p.root, angleTo(pos, camera.position), dt*6);
     if(r.timer<=0){ if(r.state==='eat' && r.after){ const a = r.after; r.after = null; a(); } else { r.state='idle'; r.timer = rand(1,2); } }
   }
   // bubble
   if(r.state==='chat') setBubble(r, r.topic || '💬');
-  else if(r.state==='happy') setBubble(r, r.happyEmoji || '💖');
+  else if(r.state==='scene') setBubble(r, r.sceneEmoji);
+  else if(r.state==='wait') setBubble(r, '👀');
+  else if(r.state==='happy' || r.state==='sad' || r.state==='angry') setBubble(r, r.happyEmoji || '💖');
   else if(r.state==='eat') setBubble(r, r.eatEmoji || '😋');
   else if(r.d.want) setBubble(r, wantEmoji(r.d.want), 'want');
   else if(r.d.mood < 30) setBubble(r, '💧');
+  else if(festivalNow() && r.state==='idle') setBubble(r, '🎆');
   else setBubble(r, null);
   r.bubble.position.y = 3.55 + Math.sin(t*3 + r.d.slot)*.08;
   animate(r, dt, t);
@@ -705,13 +869,18 @@ function needsTick(r, secs){
   d.mood += (target - d.mood) * .01 * secs;
   if(d.full < 38 && (!d.want || d.want.type!=='food')){ d.want = {type:'food', item: Math.random()<.5 ? d.fav : null}; }
   if(!d.want && Math.random() < .008*secs){
-    const opts = ['pat','acc','furn'];
+    const opts = ['pat','acc','furn','play'];
     if(residents.length > 1 && residents.some(o=>o!==r && (d.friends[o.d.id]||0) < 15)) opts.push('friend','friend');
     const ty = pick(opts);
     if(ty==='acc'){ const choices = Object.keys(ACCS).filter(k=>k!==d.acc); d.want = {type:'acc', item:pick(choices)}; }
     else if(ty==='furn'){ const have = new Set(d.room.items.map(i=>i.type)); const ch = Object.keys(FURN).filter(k=>!have.has(k)); if(ch.length) d.want = {type:'furn', item:pick(ch)}; }
     else d.want = {type:ty};
   }
+  if(!d.want && !d.partner && Math.random() < .004*secs){
+    const crush = residents.find(o=>o!==r && !o.d.partner && (d.friends[o.d.id]||0) >= 70 && o.state!=='home');
+    if(crush) d.want = {type:'confess', target:crush.d.id};
+  }
+  if(d.want && d.want.target && !resById(d.want.target)) d.want = null;
 }
 
 /* ---------------- rewards ---------------- */
@@ -720,7 +889,7 @@ function updateCoins(){ $('#coinNum').textContent = S.coins; }
 function fulfil(r, coins){
   r.d.want = null; addCoins(coins);
   r.d.xp += 1;
-  if(r.d.xp >= 3){ r.d.xp = 0; r.d.level += 1; toast(`${r.d.name} 升到了 ${r.d.level} 级！奖励 50 金币`, 'gold'); addCoins(50); confetti(mode==='room'?roomScene:scene, mode==='room'?roomChar.root.position:r.p.root.position); sfx.happy(); }
+  if(r.d.xp >= 3){ r.d.xp = 0; r.d.level += 1; toast(`${r.d.name} 升到了 ${r.d.level} 级！奖励 50 金币`, 'gold'); pushNews('⭐', `${r.d.name}升到了 ${r.d.level} 级`); addCoins(50); confetti(mode==='room'?roomScene:scene, mode==='room'?roomChar.root.position:r.p.root.position); sfx.happy(); }
   else toast(`${r.d.name} 的愿望实现啦！+${coins} 金币`, 'gold');
   save();
 }
@@ -732,6 +901,8 @@ function beHappy(r, emoji, secs=1.6){
 
 /* ---------------- time of day ---------------- */
 function isNight(){ return S.hour >= 21 || S.hour < 6; }
+function isFestival(){ return S.day % 3 === 0; }
+function festivalNow(){ return isFestival() && S.hour >= 19.5 && S.hour < 21; }
 const KEYS = [[0,SKY_NIGHT,.1,.25],[5,SKY_NIGHT,.1,.25],[6.5,SKY_DUSK,.55,.5],[8,SKY_DAY,.75,.65],[17,SKY_DAY,.75,.65],[19,SKY_DUSK,.5,.5],[20.5,SKY_NIGHT,.12,.28],[24,SKY_NIGHT,.1,.25]];
 const tmpC = new T.Color();
 function applySky(){
@@ -747,9 +918,10 @@ function applySky(){
 let lastHourInt = null;
 function tickTime(dt){
   const prev = S.hour;
-  S.hour += dt * (isNight() ? .05 : .1); // 1 game hour = 10s day, 20s night
+  S.hour += dt * (isNight() ? .05 : festivalNow() ? .04 : .1); // 1 game hour = 10s day, 20s night, 25s fireworks
   if(S.hour >= 24) S.hour -= 24;
   if(prev < 6 && S.hour >= 6) morning();
+  if(prev < 19.5 && S.hour >= 19.5 && isFestival()){ toast('烟花大会开始啦！大家都来广场啦','gold'); residents.forEach(r=>{ if(r.state==='idle'||r.state==='walk'){ r.state='idle'; r.timer=rand(0,1.5); r.watching=false; } }); }
   if(prev < 21 && S.hour >= 21) toast('天黑啦，大家都回家睡觉了。可以去他们家里看看哦', 'n');
   const night = isNight(); $('#bSleep').hidden = !night || mode!=='island';
   const hh = Math.floor(S.hour), mm = Math.floor((S.hour-hh)*60/10)*10;
@@ -760,7 +932,40 @@ function tickTime(dt){
 function morning(){
   S.day += 1; S.hour = Math.max(S.hour, 6);
   residents.forEach(r=>{ if(r.state==='home'){ r.state='idle'; r.timer=rand(.2,2); r.p.root.position.copy(doorPoint(r.d.slot)); r.p.root.visible = true; } });
-  toast(`早上好！第 ${S.day} 天开始啦，送你 30 金币`, 'gold'); addCoins(30); save();
+  toast(`早上好！第 ${S.day} 天开始啦，送你 30 金币`, 'gold'); addCoins(30);
+  newsPending = true; if(!$('#modalRoot').innerHTML && mode==='island') openNews();
+  save();
+}
+let newsPending = false;
+function openNews(){
+  newsPending = false;
+  const items = (S.news||[]).slice(-5); S.news = [];
+  const w = pick([['☀️','大晴天'],['🌤️','晴转多云'],['🌈','雨后有彩虹'],['🍃','微风轻轻吹'],['⛅','白云朵朵']]);
+  openModal(`<div class="news-top"><span class="live">早间新闻</span><span>第 ${S.day} 天</span><button class="toy close" data-close="1" aria-label="关闭" style="width:36px;height:36px;font-size:20px">×</button></div>
+    <div class="news-weather">${w[0]} 今天的天气：${w[1]}</div>
+    <ul class="news-list">${items.length ? items.map(n=>`<li><span class="ne">${n.e}</span><span>${esc(n.t)}</span></li>`).join('') : '<li><span class="ne">🌙</span><span>昨天小岛很平静，大家都睡得香香的。</span></li>'}</ul>
+    ${isFestival() ? '<div class="news-fest">🎆 今晚 7 点半，广场上空有烟花大会，大家都会来看！</div>' : ''}
+    <button class="toy big-go" data-close="1">开始新的一天</button>`);
+  sfx.happy();
+}
+const fireworks = []; let fwT = 0;
+function spawnFirework(){
+  const n = 80, pos = new Float32Array(n*3), vel = [];
+  const a = rand(0,6.28), rr = rand(2,11), c = new T.Vector3(Math.cos(a)*rr, rand(9,14), Math.sin(a)*rr);
+  for(let i=0;i<n;i++){ pos[i*3]=c.x; pos[i*3+1]=c.y; pos[i*3+2]=c.z; const v = new T.Vector3(rand(-1,1),rand(-1,1),rand(-1,1)).normalize().multiplyScalar(rand(5,8)); vel.push(v); }
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos,3));
+  const m = new T.PointsMaterial({color:pick(['#FF7A8A','#FFD54D','#6FA8FF','#7ED957','#B48CFF','#FFFFFF','#FF9F5A']), size:.8, transparent:true, depthWrite:false, blending:T.AdditiveBlending, fog:false});
+  const pts = new T.Points(g, m); scene.add(pts); fireworks.push({pts, vel, life:1.8});
+  tone(rand(70,110),.5,'sine',.12); tone(rand(900,1400),.15,'triangle',.02,.05);
+}
+function updateFireworks(dt){
+  if(festivalNow()){ fwT -= dt; if(fwT <= 0){ spawnFirework(); fwT = rand(.35,1.1); } }
+  for(let i=fireworks.length-1;i>=0;i--){
+    const f = fireworks[i], arr = f.pts.geometry.attributes.position.array; f.life -= dt;
+    f.vel.forEach((v,j)=>{ v.y -= 3*dt; v.multiplyScalar(.975); arr[j*3]+=v.x*dt; arr[j*3+1]+=v.y*dt; arr[j*3+2]+=v.z*dt; });
+    f.pts.geometry.attributes.position.needsUpdate = true; f.pts.material.opacity = clamp(f.life/1.2,0,1);
+    if(f.life<=0){ scene.remove(f.pts); f.pts.geometry.dispose(); f.pts.material.dispose(); fireworks.splice(i,1); }
+  }
 }
 
 /* ---------------- camera ---------------- */
@@ -830,6 +1035,8 @@ function select(r){
   selected = r; chooser = null;
   if(r.state==='walk'){ r.state='idle'; r.timer = 1; r.target = null; }
   cam.goal.copy(r.p.root.position);
+  if(r.state==='home') r.lastLine = '呼……呼……（睡得正香）';
+  else say(r, wantLine(r));
   $('#dock').hidden = true; renderSheet();
 }
 function releaseSelected(){ const r = selected; selected = null; if(r && r.state==='idle') r.timer = rand(.5,1.5); }
@@ -838,6 +1045,7 @@ function hairDot(d){ return `style="background:${d.look.skin};--hair:${d.look.ha
 function renderSheet(){
   const r = selected; if(!r) return; const d = r.d, el = $('#sheet');
   const wt = wantText(r);
+  const wact = d.want ? ({confess:'给他加油', makeup:'帮他们和好', play:'陪他玩'})[d.want.type] : null;
   const others = residents.filter(o=>o!==r);
   let ch = '';
   if(chooser==='feed'){
@@ -848,25 +1056,28 @@ function renderSheet(){
     ch = `<div class="chooser"><h3>送 ${d.name} 什么礼物？</h3>` + (items.length ? `<div class="grid-items">${items.map(([k,v])=>`<button class="toy item" data-gift="${k}"><span class="ic">${ACCS[k].e}</span>${ACCS[k].n}<span class="cnt">${v}</span></button>`).join('')}</div>` : `<div class="empty">还没有礼物。<button class="toy pill-btn" data-go="shop-acc">去买礼物</button></div>`)
       + (d.acc ? `<div class="empty" style="margin-top:10px">现在戴着：${ACCS[d.acc].e} ${ACCS[d.acc].n} <button class="toy pill-btn" data-takeoff="1">摘下来</button></div>` : '') + `</div>`;
   } else if(chooser==='intro'){
-    ch = `<div class="chooser"><h3>把谁介绍给 ${d.name}？</h3>` + (others.length ? `<div class="grid-items">${others.map(o=>{ const fl = friendLevel(d.friends[o.d.id]); return `<button class="toy item" data-intro="${residents.indexOf(o)}" ${o.state==='home'?'disabled':''}><span class="face-dot" style="width:34px;height:34px;margin-top:8px;background:${o.d.look.skin};--hair:${o.d.look.hairColor}"></span>${o.d.name}<span style="font-size:11px;color:var(--ink-soft)">${fl.n}</span></button>`; }).join('')}</div>` : `<div class="empty">岛上只有一个人，先邀请新居民吧。<button class="toy pill-btn" data-go="new">新居民</button></div>`) + `</div>`;
+    ch = `<div class="chooser"><h3>把谁介绍给 ${d.name}？</h3>` + (others.length ? `<div class="grid-items">${others.map(o=>{ const fl = friendLevel(d.friends[o.d.id]); return `<button class="toy item" data-intro="${residents.indexOf(o)}" ${o.state==='home'?'disabled':''}><span class="face-dot" style="width:34px;height:34px;margin-top:8px;background:${o.d.look.skin};--hair:${o.d.look.hairColor}"></span>${o.d.name}<span style="font-size:11px;color:var(--ink-soft)">${relName(r,o)}</span></button>`; }).join('')}</div>` : `<div class="empty">岛上只有一个人，先邀请新居民吧。<button class="toy pill-btn" data-go="new">新居民</button></div>`) + `</div>`;
   }
   el.innerHTML = `
     <div class="sheet-head">
       <div class="face-dot" ${hairDot(d)}></div>
-      <div><h2>${esc(d.name)}</h2><div class="tags"><span class="tag">${PERS[d.pers]}</span><span class="tag">${d.level} 级</span><span class="tag">最爱 ${FOODS[d.fav].e}</span><span class="tag">不爱 ${FOODS[d.dislike].e}</span></div></div>
+      <div><h2>${esc(d.name)}</h2><div class="tags"><span class="tag">${PERS[d.pers]}</span><span class="tag">${d.level} 级</span><span class="tag">最爱 ${FOODS[d.fav].e}</span><span class="tag">不爱 ${FOODS[d.dislike].e}</span>${d.partner && resById(d.partner) ? `<span class="tag">💑 ${esc(resById(d.partner).d.name)}</span>` : ''}</div></div>
       <button class="toy close" data-close="1" aria-label="关闭">×</button>
     </div>
+    <div class="quote" id="quote">${r.lastLine ? '“'+esc(r.lastLine)+'”' : ''}</div>
     <div class="bars">
       <span>心情</span><div class="bar mood"><i id="bMood"></i></div><span class="num" id="nMood"></span>
       <span>饱饱</span><div class="bar full"><i id="bFull"></i></div><span class="num" id="nFull"></span>
       <span>成长</span><div class="bar xp"><i style="width:${d.xp/3*100}%"></i></div><span class="num">${d.xp}/3</span>
     </div>
-    <div class="want ${wt?'':'none'}"><span class="big">${wt?wantEmoji(d.want):'😊'}</span><span>${wt ? wt : (r.state==='home'?'正在睡觉，呼呼…':'现在很满足，什么都不缺')}</span></div>
+    <div class="want ${wt?'':'none'}"><span class="big">${wt?wantEmoji(d.want):'😊'}</span><span>${wt ? wt : (r.state==='home'?'正在睡觉，呼呼…':'现在很满足，什么都不缺')}</span>${wact ? `<button class="toy wact" data-wact="1">${wact}</button>` : ''}</div>
     <div class="acts">
       <button class="toy act c1" data-act="feed"><span class="ic">🍙</span>喂食物</button>
       <button class="toy act c2" data-act="gift"><span class="ic">🎁</span>送礼物</button>
       <button class="toy act c3" data-act="pat"><span class="ic">🤚</span>摸摸头</button>
       <button class="toy act c4" data-act="intro"><span class="ic">👫</span>介绍朋友</button>
+      <button class="toy act c5" data-act="rps"><span class="ic">✊</span>猜拳</button>
+      <button class="toy act c1" data-act="edit"><span class="ic">✂️</span>换造型</button>
       <button class="toy act c5" data-act="home"><span class="ic">🏠</span>去他家</button>
     </div>${ch}`;
   el.hidden = false; refreshBars();
@@ -886,12 +1097,25 @@ $('#sheet').addEventListener('click', e=>{
     const a = b.dataset.act; sfx.pop();
     if(a==='pat'){
       if(r.state==='home'){ toast(`${d.name} 在睡觉，嘘……`); return; }
-      d.mood = clamp(d.mood + 8, 0, 100); beHappy(r, '💖'); sfx.boing();
+      d.mood = clamp(d.mood + 8, 0, 100); beHappy(r, '💖'); sfx.boing(); say(r, pick(['嘿嘿，好舒服','好开心呀','再摸一下嘛','谢谢你陪着我']));
       if(d.want && d.want.type==='pat') fulfil(r, 15);
       renderSheet(); return;
     }
     if(a==='home'){ enterRoom(r); return; }
+    if(a==='edit'){ closeSheet(); openEditor(r); return; }
+    if(a==='rps'){ if(r.state==='home'){ toast(`${d.name} 在睡觉，明天再玩吧`); return; } openRPS(r); return; }
     chooser = chooser===a ? null : a; renderSheet(); return;
+  }
+  if(b.dataset.wact){
+    const w = d.want; if(!w) return; sfx.pop();
+    if(r.state==='home'){ toast(`${d.name} 在睡觉，明天再说吧`); return; }
+    if(w.type==='play'){ openRPS(r); return; }
+    const o = resById(w.target);
+    if(!o || o.state==='home'){ toast(`${o ? o.d.name : '对方'} 已经回家了，明天再试试吧`); return; }
+    closeSheet(); summon(r, o, w.type);
+    if(w.type==='confess'){ say(r, '好，我要鼓起勇气！', true); toast(`${d.name} 鼓起勇气去找 ${o.d.name} 了！`); }
+    else { say(r, '嗯，我去道个歉！', true); toast(`${d.name} 去找 ${o.d.name} 道歉啦`); }
+    return;
   }
   if(b.dataset.feed){
     const k = b.dataset.feed; if(!(S.inv.food[k] > 0)) return;
@@ -902,9 +1126,9 @@ $('#sheet').addEventListener('click', e=>{
     const fav = k===d.fav, bad = k===d.dislike;
     d.full = clamp(d.full + (fav?60:45), 0, 100);
     r.after = ()=>{
-      if(fav){ d.mood = clamp(d.mood+22,0,100); beHappy(r,'😍',2); toast(`${FOODS[k].n}是 ${d.name} 最爱吃的！`,'pink'); sfx.happy(); }
-      else if(bad){ d.mood = clamp(d.mood+3,0,100); beHappy(r,'😖',1.4); toast(`${d.name} 皱起了眉头：“${FOODS[k].n}不太好吃……”`); }
-      else { d.mood = clamp(d.mood+10,0,100); beHappy(r,'😋',1.4); }
+      if(fav){ d.mood = clamp(d.mood+22,0,100); beHappy(r,'😍',2); say(r, `哇，是${FOODS[k].n}！太好吃啦！`); toast(`${FOODS[k].n}是 ${d.name} 最爱吃的！`,'pink'); sfx.happy(); }
+      else if(bad){ d.mood = clamp(d.mood+3,0,100); beHappy(r,'😖',1.4); say(r, '呜，这个我不太爱吃……', true); toast(`${d.name} 皱起了眉头：“${FOODS[k].n}不太好吃……”`); }
+      else { d.mood = clamp(d.mood+10,0,100); beHappy(r,'😋',1.4); say(r, '好好吃！谢谢你'); }
       const w = d.want; if(w && w.type==='food' && (!w.item || w.item===k || d.full>=60)) fulfil(r, w.item===k ? 30 : 20);
       renderSheet();
     };
@@ -916,7 +1140,7 @@ $('#sheet').addEventListener('click', e=>{
     d.acc = k; setAcc(r.p, k); chooser = null;
     const wanted = d.want && d.want.type==='acc' && d.want.item===k;
     d.mood = clamp(d.mood + (wanted?25:12), 0, 100);
-    if(r.state!=='home') beHappy(r, wanted?'😍':'😊', 2);
+    if(r.state!=='home'){ beHappy(r, wanted?'😍':'😊', 2); say(r, wanted ? '这就是我想要的！太谢谢你啦！' : '谢谢你的礼物！'); }
     sfx.happy();
     if(wanted) fulfil(r, 40); else { toast(`${d.name} 戴上了${ACCS[k].n}`); save(); }
     renderSheet(); return;
@@ -947,7 +1171,7 @@ function openModal(html, onClick){
   bg.addEventListener('click', e=>{ if(e.target===bg){ closeModal(); return; } const b = e.target.closest('button'); if(b){ if(b.dataset.close){ closeModal(); return; } onClick && onClick(b, e); } });
   bg.addEventListener('input', e=>onClick && onClick(null, e));
 }
-function closeModal(){ $('#modalRoot').innerHTML = ''; editorOpen = false; }
+function closeModal(){ $('#modalRoot').innerHTML = ''; editorOpen = false; editing = null; }
 
 let shopTab = 'food';
 function openShop(tab){
@@ -969,7 +1193,7 @@ function openFriends(confirming){
   const cards = residents.map(r=>{
     const links = residents.filter(o=>o!==r).map(o=>({o, v:r.d.friends[o.d.id]||0})).sort((a,b)=>b.v-a.v);
     return `<div class="fr"><div class="face-dot" ${hairDot(r.d)}></div><div><div class="who">${esc(r.d.name)}</div><div class="meta">${PERS[r.d.pers]} · ${r.d.level} 级 · 心情 ${Math.round(r.d.mood)}</div>
-      <div class="links">${links.length ? links.map(({o,v})=>{ const fl = friendLevel(v); return `<span class="lk r${fl.rank}">${fl.rank>=2?'💖 ':fl.rank===1?'🤝 ':''}${esc(o.d.name)} · ${fl.n}</span>`; }).join('') : '<span class="lk">还没有邻居</span>'}</div></div></div>`;
+      <div class="links">${links.length ? links.map(({o,v})=>{ const fl = friendLevel(v); return r.d.partner===o.d.id ? `<span class="lk r4">💑 ${esc(o.d.name)} · 恋人</span>` : `<span class="lk r${fl.rank}">${fl.rank>=2?'💖 ':fl.rank===1?'🤝 ':''}${esc(o.d.name)} · ${fl.n}</span>`; }).join('') : '<span class="lk">还没有邻居</span>'}</div></div></div>`;
   }).join('');
   const html = `<div class="modal-head"><h2>好朋友</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>
     <div class="fr-list">${cards}</div>
@@ -982,24 +1206,89 @@ function openFriends(confirming){
   });
 }
 
+/* ---------------- mini game: rock paper scissors ---------------- */
+function openRPS(r){
+  const st = {me:0, him:0, last:null, done:false};
+  if(selected) closeSheet();
+  cam.goal.copy(r.p.root.position);
+  const draw = ()=>{
+    const L = st.last, name = esc(r.d.name);
+    const msg = st.done ? (st.me > st.him ? `你赢啦！${name} 送你 30 金币` : `${name} 赢啦！陪玩奖励 15 金币`) : L ? (L.res>0 ? '这一局你赢了！' : L.res<0 ? `这一局 ${name} 赢了` : '一样的！再来一次') : '三局两胜，出拳吧！';
+    openModal(`<div class="modal-head"><h2>和${name}猜拳</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>
+      <div class="rps-board"><div class="side">你<div class="hand">${L ? HANDS[L.mine].e : '❔'}</div><div class="pts">${st.me}</div></div><div class="vs">VS</div><div class="side">${name}<div class="hand">${L ? HANDS[L.his].e : '❔'}</div><div class="pts">${st.him}</div></div></div>
+      <div class="rps-msg">${msg}</div>
+      ${st.done ? '<button class="toy big-go" data-close="1">好开心！</button>' : `<div class="rps-hands">${HANDS.map((h,i)=>`<button class="toy rps-btn" data-hand="${i}"><span>${h.e}</span>${h.n}</button>`).join('')}</div>`}`, b=>{
+      if(!b || !b.dataset.hand || st.done) return;
+      const mine = +b.dataset.hand, his = Math.floor(Math.random()*3);
+      const res = mine===his ? 0 : ((mine+1)%3===his ? 1 : -1);
+      if(res>0) st.me++; else if(res<0) st.him++;
+      st.last = {mine, his, res}; sfx.pop();
+      if(st.me>=2 || st.him>=2){
+        st.done = true; const win = st.me > st.him;
+        r.d.mood = clamp(r.d.mood+15,0,100);
+        if(r.d.want && r.d.want.type==='play') fulfil(r, win?30:15); else addCoins(win?30:15);
+        beHappy(r, win?'😆':'😝', 2); say(r, win ? '你好厉害呀！下次我一定赢！' : '耶！我赢啦！再来玩哦', true); sfx.happy();
+      } else say(r, res>0 ? '哎呀！' : res<0 ? '嘿嘿！' : '一样的！', true);
+      draw();
+    });
+  };
+  draw();
+}
+
+/* ---------------- photos ---------------- */
+function loadPhotos(){ try{ return JSON.parse(store('xx_photos')||'[]') || []; }catch(e){ return []; } }
+function takePhoto(){
+  if(mode==='island') renderer.render(scene, camera); else renderer.render(roomScene, roomCam);
+  const src = renderer.domElement, w = 720, h = Math.round(w*src.height/src.width);
+  const c = document.createElement('canvas'); c.width = w; c.height = h + 60; const g = c.getContext('2d');
+  g.fillStyle = '#FFFBF2'; g.fillRect(0,0,c.width,c.height); g.drawImage(src,0,0,w,h);
+  g.fillStyle = '#D95466'; g.font = 'bold 26px "PingFang SC","Microsoft YaHei",sans-serif'; g.fillText('心心小岛', 20, h+40);
+  g.fillStyle = '#6E6788'; g.font = '20px "PingFang SC","Microsoft YaHei",sans-serif'; g.fillText(`第 ${S.day} 天` + (mode==='room' && roomRes ? ` · ${roomRes.d.name}的家` : ''), 140, h+40);
+  let url; try{ url = c.toDataURL('image/jpeg', .8); }catch(e){ toast('这次没拍成，再试一次吧'); return; }
+  const fl = document.createElement('div'); fl.className = 'flash'; document.body.appendChild(fl); setTimeout(()=>fl.remove(), 600);
+  tone(1800,.04,'square',.05); tone(1200,.06,'square',.04,.05);
+  showPhoto(url, true);
+}
+function showPhoto(url, fresh, idx){
+  const n = loadPhotos().length;
+  openModal(`<div class="modal-head"><h2>${fresh ? '咔嚓！' : '照片'}</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>
+    <img class="photo" src="${url}" alt="小岛照片">
+    <p class="tip">长按或右键图片，就能保存到你的设备里。</p>
+    <div class="row-btns">${fresh ? '<button class="toy pill-btn" data-keep="1">放进相册</button>' : `<button class="toy pill-btn" data-del="${idx}">删掉这张</button>`}<button class="toy pill-btn" data-album="1">看相册（${n}）</button></div>`, b=>{
+    if(!b) return;
+    if(b.dataset.keep){ const ph = loadPhotos(); ph.unshift(url); while(ph.length > 8) ph.pop(); try{ localStorage.setItem('xx_photos', JSON.stringify(ph)); toast('放进相册啦'); }catch(e){ toast('相册满啦，先删几张吧'); } openAlbum(); }
+    if(b.dataset.del !== undefined){ const ph = loadPhotos(); ph.splice(+b.dataset.del,1); store('xx_photos', JSON.stringify(ph)); openAlbum(); }
+    if(b.dataset.album) openAlbum();
+  });
+}
+function openAlbum(){
+  const ph = loadPhotos();
+  openModal(`<div class="modal-head"><h2>相册</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>
+    ${ph.length ? `<div class="album">${ph.map((u,i)=>`<button data-view="${i}" aria-label="看第 ${i+1} 张照片"><img src="${u}" alt=""></button>`).join('')}</div>` : '<p class="tip">还没有照片。点右上角的相机拍一张吧！</p>'}`, b=>{
+    if(b && b.dataset.view !== undefined){ const i = +b.dataset.view; showPhoto(ph[i], false, i); }
+  });
+}
+
 /* ---------------- editor (new resident) ---------------- */
-let editorOpen = false, draft = null, pvRenderer = null, pvScene = null, pvCam = null, pvModel = null;
-function openEditor(){
+let editorOpen = false, draft = null, pvRenderer = null, pvScene = null, pvCam = null, pvModel = null, editing = null;
+function openEditor(r){
+  editing = r || null;
+  if(r){ const d = r.d; draft = {name:d.name, look:Object.assign({}, d.look), pers:d.pers, catch:d.catch||'', voice:Object.assign({}, d.voice||newVoice()), slot:d.slot}; sfx.pop(); renderEditor(); return; }
   const used = new Set(residents.map(r=>r.d.slot));
   const free = SLOTS.map((_,i)=>i).filter(i=>!used.has(i));
   if(!free.length){ toast('小岛住满啦（最多 8 位居民）'); return; }
   sfx.pop();
   const usedNames = new Set(residents.map(r=>r.d.name));
-  draft = {name: pick(NAMES.filter(n=>!usedNames.has(n)).concat(['新朋友'])), look:newLook(), pers:pick(Object.keys(PERS)), slot:free[0]};
+  draft = {name: pick(NAMES.filter(n=>!usedNames.has(n)).concat(['新朋友'])), look:newLook(), pers:pick(Object.keys(PERS)), slot:free[0], catch:pick(CATCHES), voice:newVoice()};
   renderEditor(); editorOpen = true;
 }
 function renderEditor(){
-  openModal(`<div class="modal-head"><h2>来了一位新居民</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>
+  openModal(`<div class="modal-head"><h2>${editing ? '换个新造型' : '来了一位新居民'}</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>
     <div class="editor">
       <div class="pv-wrap"><div id="pvSlot"></div><button class="toy pill-btn" data-rand="1">🎲 随机一下</button></div>
       <div id="edOpts"></div>
     </div>
-    <button class="toy big-go" data-go="1">搬进小岛！</button>`, editorClick);
+    <button class="toy big-go" data-go="1">${editing ? '就这样吧！' : '搬进小岛！'}</button>`, editorClick);
   editorOpen = true; setupPreview(); renderEdOpts();
 }
 function renderEdOpts(){
@@ -1008,6 +1297,8 @@ function renderEdOpts(){
   const chips = (key, arr, obj) => arr.map(o=>`<button class="chip ${(obj?draft:L)[key]===o.id?'on':''}" data-k="${key}" data-v="${o.id}" ${obj?'data-top="1"':''}>${o.n}</button>`).join('');
   $('#edOpts').innerHTML = `
         <div class="opt"><label for="nameInput">名字</label><div class="name-row"><input id="nameInput" maxlength="6" value="${esc(draft.name)}" autocomplete="off"></div></div>
+        <div class="opt"><label for="catchInput">口头禅</label><div class="name-row"><input id="catchInput" maxlength="6" value="${esc(draft.catch||'')}" autocomplete="off" placeholder="比如：哒哟"></div></div>
+        <div class="opt"><span class="lb">声音</span><div class="voice-row"><label>低<input type="range" id="pitchIn" min="0.5" max="2" step="0.1" value="${draft.voice.pitch}">高</label><label>慢<input type="range" id="rateIn" min="0.6" max="1.5" step="0.1" value="${draft.voice.rate}">快</label><button class="toy pill-btn" data-try="1">🔈 试听</button></div></div>
         <div class="opt"><span class="lb">肤色</span><div class="sw-row">${sw('skin',SKINS)}</div></div>
         <div class="opt"><span class="lb">发型</span><div class="sw-row">${chips('hair',HAIRS)}</div></div>
         <div class="opt"><span class="lb">发色</span><div class="sw-row">${sw('hairColor',HAIR_COLORS)}</div></div>
@@ -1016,13 +1307,28 @@ function renderEdOpts(){
         <div class="opt"><span class="lb">性格</span><div class="sw-row">${chips('pers',Object.entries(PERS).map(([id,n])=>({id,n})),true)}</div></div>`;
 }
 function editorClick(b, e){
-    if(!b){ if(e.target.id==='nameInput') draft.name = e.target.value; return; }
+    if(!b){ const id = e.target.id;
+      if(id==='nameInput') draft.name = e.target.value;
+      if(id==='catchInput') draft.catch = e.target.value.trim();
+      if(id==='pitchIn') draft.voice.pitch = +e.target.value;
+      if(id==='rateIn') draft.voice.rate = +e.target.value;
+      return; }
+    if(b.dataset.try){ speakWith(draft.voice, `我是${draft.name||'新朋友'}，${pick(PERS_LINES[draft.pers])}${draft.catch ? '，'+draft.catch+'！' : ''}`); return; }
+    if(b.dataset.go && editing){
+      const r = editing, d = r.d; editing = null;
+      d.name = ((draft.name||'').trim() || d.name).slice(0,6); d.look = draft.look; d.pers = draft.pers; d.catch = draft.catch; d.voice = draft.voice;
+      closeModal(); rebuildChar(r); buildHouse(r); save(); sfx.happy();
+      toast(`${d.name} 换了新造型！`, 'gold'); cam.goal.copy(r.p.root.position);
+      if(r.state!=='home'){ beHappy(r,'✨',1.8); say(r, '嘿嘿，好看吗？'); }
+      return;
+    }
     if(b.dataset.go){
       const name = (draft.name||'').trim() || '新朋友';
-      const d = makeResData(name.slice(0,6), draft.look, draft.pers, draft.slot);
+      const d = makeResData(name.slice(0,6), draft.look, draft.pers, draft.slot); d.catch = draft.catch; d.voice = draft.voice;
+      pushNews('🏠', `${d.name}搬进了心心小岛`);
       closeModal(); const r = addResident(d, true);
       save(); sfx.happy(); toast(`欢迎 ${d.name} 搬进心心小岛！`, 'gold');
-      cam.goal.copy(r.p.root.position); confetti(scene, r.p.root.position); if(!isNight()) beHappy(r,'👋',2);
+      cam.goal.copy(r.p.root.position); confetti(scene, r.p.root.position); if(!isNight()){ beHappy(r,'👋',2); say(r, `大家好，我是${d.name}！请多关照`); }
       return;
     }
     if(b.dataset.rand){ draft.look = newLook(); draft.pers = pick(Object.keys(PERS)); }
@@ -1048,7 +1354,7 @@ const roomCam = new T.PerspectiveCamera(38,1,.1,100);
 roomScene.add(new T.HemisphereLight(0xffffff, 0xd9c2a8, .7));
 const rl = new T.DirectionalLight(0xffffff,.55); rl.position.set(6,10,4); rl.castShadow = true; rl.shadow.mapSize.set(1024,1024); Object.assign(rl.shadow.camera,{left:-6,right:6,top:6,bottom:-6}); rl.shadow.camera.updateProjectionMatrix(); roomScene.add(rl);
 const roomGroup = new T.Group(); roomScene.add(roomGroup);
-let roomRes = null, roomChar = null, roomSelFurn = null, roomSelItem = null, roomYaw = .785, roomWalk = null;
+let roomRes = null, roomChar = null, roomSelFurn = null, roomSelItem = null, roomYaw = .785, roomWalk = null, roomSleeping = false, roomZzz = null;
 const FB = {
   bed(){ const g=new T.Group(); g.add(mesh(G.box(.9,.3,.95),M('#C98B62'),0,.2,0)); g.add(mesh(G.box(.86,.14,.9),M('#FFFFFF'),0,.42,0)); g.add(mesh(G.box(.88,.12,.6),M('#FF9AAE'),0,.47,.16)); g.add(mesh(G.box(.5,.12,.25),M('#FFF6E6'),0,.52,-.28)); g.add(mesh(G.box(.9,.6,.08),M('#C98B62'),0,.5,-.45)); return g; },
   table(){ const g=new T.Group(); g.add(mesh(G.cyl(.42,.42,.07,20),M('#E8B98A'),0,.55,0)); g.add(mesh(G.cyl(.06,.06,.5,8),M('#C98B62'),0,.28,0)); g.add(mesh(G.cyl(.25,.25,.04,16),M('#C98B62'),0,.02,0)); g.add(mesh(G.cyl(.08,.07,.12,10),M('#FFFFFF'),.12,.65,.05)); return g; },
@@ -1080,9 +1386,21 @@ function buildRoom(){
     if(it===roomSelItem){ const rr = new T.Mesh(new T.RingGeometry(.5,.62,28), B('#FFC94D')); rr.rotation.x=-Math.PI/2; rr.position.copy(tileOf(it)).setY(.03); roomGroup.add(rr); }
   });
   roomChar = buildChar(d.look, d.acc); roomChar.root.scale.setScalar(.8);
-  const free = freeTiles(); const sp = free.length ? pick(free) : {i:3,j:5};
-  roomChar.root.position.set(sp.i-3,0,sp.j-3); roomGroup.add(roomChar.root);
-  const lb = sprite(labelTex(d.name), 1.5, .42); lb.position.y = 2.7; roomChar.root.add(lb);
+  roomSleeping = roomRes.state==='home';
+  if(roomSleeping){
+    const bed = d.room.items.find(i=>i.type==='bed');
+    const holder = new T.Group(); let spot;
+    if(bed) spot = tileOf(bed); else { const f = freeTiles(); const t0 = f.length ? f[0] : {i:3,j:3}; spot = new T.Vector3(t0.i-3,0,t0.j-3); }
+    holder.position.copy(spot); holder.rotation.y = bed ? bed.rot*Math.PI/2 : 0;
+    roomChar.root.scale.setScalar(.42); roomChar.root.rotation.x = -Math.PI/2; roomChar.root.position.set(0, bed ? .5 : .15, .45);
+    holder.add(roomChar.root); roomGroup.add(holder);
+    if(bed) holder.add(mesh(G.box(.84,.1,.5), M('#FF9AAE'), 0,.62,.2));
+    roomZzz = sprite(bubbleTexPlain('💤'), .8, .8); roomZzz.position.copy(spot).setY(1.5); roomGroup.add(roomZzz);
+  } else {
+    const free = freeTiles(); const sp = free.length ? pick(free) : {i:3,j:5};
+    roomChar.root.position.set(sp.i-3,0,sp.j-3); roomGroup.add(roomChar.root);
+    const lb = sprite(labelTex(d.name), 1.5, .42); lb.position.y = 2.7; roomChar.root.add(lb);
+  }
   roomWalk = {t:rand(1,3), dest:null};
 }
 function freeTiles(){ const occ = new Set(roomRes.d.room.items.filter(i=>i.type!=='rug').map(i=>i.x+','+i.z)); const out=[]; for(let i=0;i<7;i++) for(let j=0;j<7;j++) if(!occ.has(i+','+j)) out.push({i,j}); return out; }
@@ -1091,12 +1409,12 @@ function enterRoom(r){
   mode = 'room'; roomRes = r; roomSelFurn = null; roomSelItem = null; roomYaw = .785;
   buildRoom(); $('#dock').hidden = true; $('#sheet').hidden = true; $('#bSleep').hidden = true; renderRoomBar(); onResize();
 }
-function leaveRoom(){ mode = 'island'; roomRes = null; roomGroup.clear(); $('#roomBar').hidden = true; $('#dock').hidden = false; onResize(); }
+function leaveRoom(){ mode = 'island'; roomRes = null; roomGroup.clear(); $('#roomBar').hidden = true; $('#dock').hidden = false; onResize(); if(newsPending && !$('#modalRoot').innerHTML) openNews(); }
 function renderRoomBar(){
   const d = roomRes.d, inv = S.inv.furn;
   const owned = Object.entries(inv).filter(([k,v])=>v>0);
   const wantF = d.want && d.want.type==='furn' ? d.want.item : null;
-  let hint = roomSelFurn ? `点一块地板，把${FURN[roomSelFurn].n}放上去` : '选一件家具，再点地板摆放。拖动可以转视角';
+  let hint = roomSleeping ? `${d.name} 睡着了，点一点看看在做什么梦` : roomSelFurn ? `点一块地板，把${FURN[roomSelFurn].n}放上去` : '选一件家具，再点地板摆放。拖动可以转视角';
   const sel = roomSelItem ? `<div class="sel-bar"><span>${FURN[roomSelItem.type].e} ${FURN[roomSelItem.type].n}</span><button class="toy pill-btn" data-rot="1">转一转</button><button class="toy pill-btn" data-pick="1">收起来</button><button class="toy pill-btn" data-desel="1">好了</button></div>` : '';
   const el = $('#roomBar');
   el.innerHTML = `<div class="room-top"><h2>${esc(d.name)}的家</h2><span class="hint">${wantF?`${d.name} 想要一个${FURN[wantF].e}${FURN[wantF].n}！`:hint}</span><button class="toy back" data-back="1">回小岛</button></div>
@@ -1117,7 +1435,7 @@ $('#roomBar').addEventListener('click', e=>{
   if(b.dataset.pick && roomSelItem){ d.room.items.splice(d.room.items.indexOf(roomSelItem),1); S.inv.furn[roomSelItem.type] = (S.inv.furn[roomSelItem.type]||0)+1; roomSelItem = null; buildRoomKeepChar(); renderRoomBar(); save(); return; }
   if(b.dataset.desel){ roomSelItem = null; buildRoomKeepChar(); renderRoomBar(); }
 });
-function buildRoomKeepChar(){ const p = roomChar ? roomChar.root.position.clone() : null; const ry = roomChar ? roomChar.root.rotation.y : 0; buildRoom(); if(p){ roomChar.root.position.copy(p); roomChar.root.rotation.y = ry; } }
+function buildRoomKeepChar(){ if(roomSleeping){ buildRoom(); return; } const p = roomChar ? roomChar.root.position.clone() : null; const ry = roomChar ? roomChar.root.rotation.y : 0; buildRoom(); if(p){ roomChar.root.position.copy(p); roomChar.root.rotation.y = ry; } }
 function roomTap(){
   ray.setFromCamera(ndc, roomCam);
   const hits = ray.intersectObjects(roomGroup.children, true);
@@ -1125,7 +1443,8 @@ function roomTap(){
   for(const h of hits){
     let o = h.object; while(o && o!==roomGroup && !o.userData.item && !o.userData.tile && !(roomChar && o===roomChar.root)) o = o.parent;
     if(!o || o===roomGroup) continue;
-    if(roomChar && o===roomChar.root){ sfx.boing(); d.mood = clamp(d.mood+4,0,100); roomWalk.happy = 1.2; burst(roomScene, roomChar.root.position.clone().setY(2.3), '💗', 4); if(d.want && d.want.type==='pat') fulfil(roomRes, 15); return; }
+    if(roomChar && o===roomChar.root && roomSleeping){ const dr = pick(DREAMS); toast(`💭 ${d.name}${dr}`); speakWith({pitch:(d.voice||{}).pitch||1, rate:.75}, '呼……' + dr.replace('梦见','我梦见')); return; }
+    if(roomChar && o===roomChar.root){ sfx.boing(); say(roomRes, pick(['欢迎来我家玩！','我的房间好看吗？','嘿嘿，好痒'])); d.mood = clamp(d.mood+4,0,100); roomWalk.happy = 1.2; burst(roomScene, roomChar.root.position.clone().setY(2.3), '💗', 4); if(d.want && d.want.type==='pat') fulfil(roomRes, 15); return; }
     if(o.userData.item){ if(roomSelFurn) { toast('这里已经有东西啦，换一块地板吧'); return; } sfx.pop(); roomSelItem = o.userData.item; buildRoomKeepChar(); renderRoomBar(); return; }
     if(o.userData.tile){
       const {i,j} = o.userData.tile;
@@ -1149,6 +1468,7 @@ function roomTap(){
 }
 function updateRoom(dt, t){
   if(!roomChar) return;
+  if(roomSleeping){ if(roomZzz) roomZzz.position.y = 1.5 + Math.sin(t*1.5)*.12; roomChar.rig.scale.y = 1 + Math.sin(t*2)*.03; return; }
   const p = roomChar, w = roomWalk, pos = p.root.position;
   let bob = Math.sin(t*2.2)*.015, legA = 0, raise = 0;
   if(w.happy > 0){ w.happy -= dt; bob = Math.abs(Math.sin(t*9))*.45; raise = 2.5; }
@@ -1175,7 +1495,8 @@ $('#bNew').onclick = ()=>openEditor();
 $('#bShop').onclick = ()=>{ sfx.pop(); openShop(); };
 $('#bFriends').onclick = ()=>{ sfx.pop(); openFriends(false); };
 $('#bSleep').onclick = ()=>{ sfx.pop(); S.hour = 5.99; };
-$('#soundBtn').onclick = ()=>{ soundOn = !soundOn; store('xx_sound', soundOn?'1':'0'); $('#soundBtn').textContent = soundOn?'🔊':'🔈'; ac(); if(soundOn) sfx.pop(); };
+$('#photoBtn').onclick = ()=>takePhoto();
+$('#soundBtn').onclick = ()=>{ if(soundOn && window.speechSynthesis) try{ speechSynthesis.cancel(); }catch(e){} soundOn = !soundOn; store('xx_sound', soundOn?'1':'0'); $('#soundBtn').textContent = soundOn?'🔊':'🔈'; ac(); if(soundOn) sfx.pop(); };
 $('#soundBtn').textContent = soundOn ? '🔊' : '🔈';
 
 /* ---------------- world lifecycle ---------------- */
@@ -1205,7 +1526,7 @@ function loop(){
   saveT += dt; if(saveT > 6){ save(); saveT = 0; }
   barT += dt; if(barT > .4){ refreshBars(); barT = 0; }
   residents.forEach(r=>updateResident(r, dt, t));
-  updateParticles(dt);
+  updateParticles(dt); updateFireworks(dt);
   if(mode==='island'){
     if(selected) cam.goal.copy(selected.p.root.position);
     cam.target.lerp(cam.goal, Math.min(1, dt*3));
@@ -1225,6 +1546,8 @@ function loop(){
 /* ---------------- boot ---------------- */
 S = loadState();
 S.inv = Object.assign({food:{},acc:{},furn:{}}, S.inv||{});
+S.news = S.news || [];
+S.residents.forEach(d=>{ if(!d.voice) d.voice = newVoice(); if(d.catch===undefined) d.catch = pick(CATCHES); if(d.partner===undefined) d.partner = null; });
 S.residents.forEach(d=>addResident(d,false));
 updateCoins(); onResize(); applySky(); loop();
 setTimeout(()=>toast('点一点小人，看看他们想要什么吧！'), 600);
