@@ -321,7 +321,10 @@ let selected = null;
 let mode = 'island';
 let soundOn = store('xx_sound') !== '0';
 
-function newVoice(){ return {pitch:Math.round(rand(.7,1.6)*10)/10, rate:Math.round(rand(.85,1.2)*100)/100, seed:Math.random(), name:null}; }
+// voice.g: 'f' girl / 'm' boy — decides which voices a resident can use
+function newVoice(g){ g = g || (Math.random() < .5 ? 'f' : 'm'); return {g, pitch:Math.round((g==='f' ? rand(1.05,1.6) : rand(.7,1.1))*10)/10, rate:Math.round(rand(.85,1.2)*100)/100, seed:Math.random(), name:null}; }
+function guessGender(d){ const known = {'小桃':'f','豆豆':'m','米粒':'f','阿布':'m'}; if(known[d.name]) return known[d.name]; if(d.look && (d.look.hair==='buns' || d.look.hair==='long')) return 'f'; if(d.look && d.look.hair==='spiky') return 'm'; return Math.random() < .5 ? 'f' : 'm'; }
+function ta(d){ return d && d.voice && d.voice.g==='f' ? '她' : '他'; }
 function newLook(){ return {skin:pick(SKINS), hair:pick(HAIRS).id, hairColor:pick(HAIR_COLORS), shirt:pick(SHIRTS), eyes:pick(EYES).id}; }
 const ri = (a,b) => a + Math.floor(Math.random()*(b-a+1));
 function traitsFor(pers){
@@ -351,6 +354,7 @@ function freshState(){
   const d = makeResData('阿布',{skin:SKINS[3],hair:'curly',hairColor:'#E8B94A',shirt:'#FFC94D',eyes:'round'},'cool',6);
   d.acc = 'glasses';
   a.catch = '呀吼'; b.catch = '噗噗'; c.catch = '嘛~'; d.catch = '是也';
+  a.voice = newVoice('f'); b.voice = newVoice('m'); c.voice = newVoice('f'); d.voice = newVoice('m');
   a.bday = 2; b.bday = 4; c.bday = 6; d.bday = 9; // 小桃's birthday is tomorrow
   d.outfit = 'hoodie';
   a.friends[b.id]=b.friends[a.id]=40;
@@ -425,16 +429,28 @@ function voiceLabel(v, i){
   const n = v.name.replace(/Microsoft|Google|Apple|Online|Natural|Enhanced|Premium|\(.*?\)|- ?Chinese.*$/gi,' ').replace(/\s+/g,' ').trim();
   return n || ('音色' + (i+1));
 }
+// known male voices (Microsoft / Edge neural / Apple); everything else is treated as female, which most Chinese voices are
+const MALE_VOICE = /kangkang|yunxi|yunjian|yunyang|yunxia|yunfeng|yunhao|yunye|yunze|yunjie|yunhan|liang|\bmale\b|男/i;
+function voiceGender(v){ return MALE_VOICE.test(v.name) ? 'm' : 'f'; }
+function voicesFor(g){ const m = zhVoices.filter(v=>voiceGender(v)===g); return m; }
 function pickVoice(voice){
   if(!zhVoices.length) return null;
-  if(voice && voice.name){ const v = zhVoices.find(x=>x.name===voice.name); if(v) return v; }
-  // no explicit choice: spread residents over the good Mandarin voices by their voice seed
-  const pool = zhVoices.filter(v=>!CANTONESE.test(v.lang + v.name)), best = pool.filter(v=>GOOD_VOICE.test(v.name));
-  const use = best.length >= 2 ? best : (pool.length ? pool : zhVoices);
+  const g = (voice && voice.g) || 'f';
+  if(voice && voice.name){ const v = zhVoices.find(x=>x.name===voice.name); if(v && voiceGender(v)===g) return v; }
+  // no explicit choice: spread residents over the good Mandarin voices of their gender by their voice seed
+  const mand = zhVoices.filter(v=>!CANTONESE.test(v.lang + v.name));
+  let pool = mand.filter(v=>voiceGender(v)===g);
+  if(!pool.length) pool = mand.length ? mand : zhVoices; // no voice of that gender on this device: fall back, natPitch shifts it
+  const best = pool.filter(v=>GOOD_VOICE.test(v.name)), use = best.length >= 2 ? best : pool;
   return use[Math.floor(((voice && voice.seed) || 0) * use.length) % use.length];
 }
 // keep pitch/rate in a natural band: big shifts make synthesized speech sound robotic
-function natPitch(v){ return clamp(1 + (((v && v.pitch) || 1) - 1)*.55, .7, 1.45); }
+function natPitch(v){
+  let p = clamp(1 + (((v && v.pitch) || 1) - 1)*.55, .7, 1.45);
+  const pv = pickVoice(v), g = (v && v.g) || 'f';
+  if(pv && voiceGender(pv) !== g) p = g==='m' ? Math.min(p, 1)*.72 : Math.max(p, 1)*1.3; // only an opposite-gender voice is available
+  return clamp(p, .5, 1.8);
+}
 function natRate(v){ return clamp(1 + (((v && v.rate) || 1) - 1)*.5, .82, 1.22); }
 function speechText(t){ return String(t).replace(/[🀀-🫿☀-➿⬀-⯿️‍⃣]/gu, '').replace(/[~～「」“”"]/g, '').replace(/…+/g, '，').replace(/\s+/g, ' ').trim(); }
 function speakWith(voice, text){
@@ -935,7 +951,7 @@ function wantText(r){
   if(w.type==='pat') return '想要摸摸头';
   if(w.type==='play') return '想和你玩猜拳';
   if(w.type==='cloth') return `想穿${OUTFITS[w.item].n}`;
-  if(w.type==='ask') return ({think:'想让你猜猜他在想什么', me:'想问你：我是个怎样的人？', nick:'想让你帮忙起个外号', fav:'想考考你还记不记得他的口味'})[w.q] || '有话想问你';
+  if(w.type==='ask') return ({think:'想让你猜猜'+ta(r.d)+'在想什么', me:'想问你：我是个怎样的人？', nick:'想让你帮忙起个外号', fav:'想考考你还记不记得'+ta(r.d)+'的口味'})[w.q] || '有话想问你';
   if(w.type==='bday') return '今天是我的生日！想和大家一起庆祝';
   const o = w.with && byId(w.with); const on = o ? o.d.name : 'TA';
   if(w.type==='love') return `偷偷喜欢上了${on}，想表白……帮帮忙吧！`;
@@ -1158,7 +1174,7 @@ function updateCoins(){ $('#coinNum').textContent = S.coins; }
 function fulfil(r, coins){
   r.d.want = null; addCoins(coins);
   r.d.xp += 1;
-  if(r.d.xp >= 3){ r.d.xp = 0; r.d.level += 1; r.d.lvPending = true; toast(`${r.d.name} 升到了 ${r.d.level} 级！点他挑一个奖励 ⭐`, 'gold'); logNews(`⭐ ${r.d.name} 升到了 ${r.d.level} 级`); confetti(mode==='room'?roomScene:scene, mode==='room'?roomChar.root.position:r.p.root.position); sfx.happy(); }
+  if(r.d.xp >= 3){ r.d.xp = 0; r.d.level += 1; r.d.lvPending = true; toast(`${r.d.name} 升到了 ${r.d.level} 级！点${ta(r.d)}挑一个奖励 ⭐`, 'gold'); logNews(`⭐ ${r.d.name} 升到了 ${r.d.level} 级`); confetti(mode==='room'?roomScene:scene, mode==='room'?roomChar.root.position:r.p.root.position); sfx.happy(); }
   else toast(`${r.d.name} 的愿望实现啦！+${coins} 金币`, 'gold');
   save();
 }
@@ -1587,7 +1603,7 @@ function openVisitor(){
   openModal(modalHead(`🧳 旅行者 ${esc(d.name)}`) + `<div class="say" style="margin:0 0 10px">“${esc(line)}”</div>
     <p class="tip">${persName(d)} · 最爱 ${FOODS[d.fav].e} · 晚上 8 点坐船离开</p>
     <div class="row-btns"><button class="toy pill-btn hot" data-invite="1" ${free.length ? '' : 'disabled'}>🏠 邀请住下${free.length ? '' : '（岛上住满了）'}</button><button class="toy pill-btn" data-bye="1">👋 挥手再见</button></div>
-    ${v.fed ? '<p class="tip">已经请他吃过东西啦，谢谢你！</p>' : `<div class="sec">请他吃点东西</div>${foods.length ? `<div class="grid-items">${foods.map(([k,n])=>`<button class="toy item" data-vfeed="${k}">${d.fav===k?'<span class="fav">最爱</span>':''}<span class="ic">${FOODS[k].e}</span>${FOODS[k].n}<span class="cnt">${n}</span></button>`).join('')}</div>` : '<p class="tip">背包里没有食物了。</p>'}`}`, b=>{
+    ${v.fed ? `<p class="tip">已经请${ta(d)}吃过东西啦，谢谢你！</p>` : `<div class="sec">请${ta(d)}吃点东西</div>${foods.length ? `<div class="grid-items">${foods.map(([k,n])=>`<button class="toy item" data-vfeed="${k}">${d.fav===k?'<span class="fav">最爱</span>':''}<span class="ic">${FOODS[k].e}</span>${FOODS[k].n}<span class="cnt">${n}</span></button>`).join('')}</div>` : '<p class="tip">背包里没有食物了。</p>'}`}`, b=>{
     if(!b) return;
     if(b.dataset.invite) inviteVisitor();
     if(b.dataset.bye){ closeModal(); toast(`${d.name}：“谢谢招待，有缘再见！”`); }
@@ -1739,7 +1755,7 @@ function morning(){
     }
   });
   if(isFestival()) extra.push('🎆 今晚 7 点半，广场上空有烟花大会，大家都会来看！');
-  residents.forEach(r=>{ if(r.d.want && r.d.want.type==='bday') r.d.want = null; if(isBday(r.d)){ r.d.want = {type:'bday'}; extra.push(`🎂 今天是 ${r.d.name} 的生日！去广场给他办个派对吧`); } });
+  residents.forEach(r=>{ if(r.d.want && r.d.want.type==='bday') r.d.want = null; if(isBday(r.d)){ r.d.want = {type:'bday'}; extra.push(`🎂 今天是 ${r.d.name} 的生日！去广场给${ta(r.d)}办个派对吧`); } });
   if(!S.visitor && Math.random() < .4){ S.visitor = makeVisitor(); spawnVisitor(); extra.push(`🚢 旅行者 ${S.visitor.d.name} 坐船来到了港口`); }
   S.news.items.push(...extra); S.newsUnread = S.news.items.length > 0; updateNewsDot();
   if(mode==='room'){ buildRoomKeepChar(); renderRoomBar(); }
@@ -1850,9 +1866,9 @@ function renderSheet(){
   let wantActs = '';
   if(w && wo && w.type==='love') wantActs = `<div class="want-acts"><span>怎么表白好呢？</span>${Object.entries(CONFESS).map(([k,v])=>`<button class="toy pill-btn" data-confess="${k}">${v.e} ${v.n}</button>`).join('')}</div>`;
   if(w && wo && w.type==='propose') wantActs = `<div class="want-acts"><button class="toy pill-btn hot" data-propose="1">💍 帮忙求婚</button></div>`;
-  if(w && w.type==='play') wantActs = `<div class="want-acts"><button class="toy pill-btn" data-act="rps">✊ 陪他玩</button></div>`;
+  if(w && w.type==='play') wantActs = `<div class="want-acts"><button class="toy pill-btn" data-act="rps">✊ 陪${ta(d)}玩</button></div>`;
   if(w && w.type==='bday') wantActs = `<div class="want-acts"><button class="toy pill-btn hot" data-party="1">🎉 在广场办生日派对</button></div>`;
-  if(w && w.type==='ask') wantActs = `<div class="want-acts"><button class="toy pill-btn" data-act="ask">❓ 陪他聊聊</button></div>`;
+  if(w && w.type==='ask') wantActs = `<div class="want-acts"><button class="toy pill-btn" data-act="ask">❓ 陪${ta(d)}聊聊</button></div>`;
   const lvBox = d.lvPending ? `<div class="lvbox"><b>⭐ 升到 ${d.level} 级啦！想要哪个奖励？</b>${chooser==='lvcatch' ? `<div class="name-row" style="margin-top:8px"><input class="text-in" id="lvCatch" maxlength="5" value="${esc(d.catch)}"><button class="toy pill-btn hot" data-lvok="1">就用这个</button></div>` : `<div class="want-acts">${LV_REWARDS.map(([k,n])=>`<button class="toy pill-btn" data-lv="${k}">${n}</button>`).join('')}</div>`}</div>` : '';
   if(w && wo && w.type==='makeup') wantActs = `<div class="want-acts"><button class="toy pill-btn" data-makeup="1">🤝 帮他们和好</button></div>`;
   const others = residents.filter(o=>o!==r);
@@ -1890,7 +1906,7 @@ function renderSheet(){
       <button class="toy act c5" data-act="rps"><span class="ic">✊</span>猜拳</button>
       <button class="toy act c2" data-act="ask"><span class="ic">❓</span>聊聊天</button>
       <button class="toy act c1" data-act="edit"><span class="ic">✂️</span>换造型</button>
-      <button class="toy act c5" data-act="home"><span class="ic">🏠</span>去他家</button>
+      <button class="toy act c5" data-act="home"><span class="ic">🏠</span>去${ta(d)}家</button>
     </div>${ch}`;
   el.hidden = false; refreshBars();
   const line = r.say || talk(r); if(line !== r.spoken){ r.spoken = line; speakWith(d.voice, line); }
@@ -2117,8 +2133,9 @@ function renderEditor(){
   editorOpen = true; setupPreview(); renderEdOpts();
 }
 function voiceChips(){
-  if(zhVoices.length < 2) return '';
-  return `<div class="sw-row" style="margin-top:8px"><button class="chip ${!draft.voice.name?'on':''}" data-vname="">自动</button>${zhVoices.slice(0,10).map((v,i)=>`<button class="chip ${draft.voice.name===v.name?'on':''}" data-vname="${esc(v.name)}">${esc(voiceLabel(v,i))}</button>`).join('')}</div>`;
+  const list = voicesFor(draft.voice.g || 'f');
+  if(list.length < 2) return '';
+  return `<div class="sw-row" style="margin-top:8px"><button class="chip ${!draft.voice.name?'on':''}" data-vname="">自动</button>${list.slice(0,10).map((v,i)=>`<button class="chip ${draft.voice.name===v.name?'on':''}" data-vname="${esc(v.name)}">${esc(voiceLabel(v,i))}</button>`).join('')}</div>`;
 }
 function renderEdOpts(){
   const L = draft.look;
@@ -2127,6 +2144,7 @@ function renderEdOpts(){
   $('#edOpts').innerHTML = `
         <div class="opt"><label for="nameInput">名字</label><div class="name-row"><input id="nameInput" maxlength="6" value="${esc(draft.name)}" autocomplete="off"></div></div>
         <div class="opt"><label for="catchInput">口头禅</label><div class="name-row"><input id="catchInput" maxlength="5" value="${esc(draft.catch)}" autocomplete="off"></div></div>
+        <div class="opt"><span class="lb">性别</span><div class="sw-row"><button class="chip ${draft.voice.g==='f'?'on':''}" data-gender="f">女生</button><button class="chip ${draft.voice.g==='m'?'on':''}" data-gender="m">男生</button></div></div>
         <div class="opt"><span class="lb">声音</span><div class="voice-row"><label>低<input type="range" id="pitchIn" min="0.5" max="2" step="0.1" value="${draft.voice.pitch}">高</label><label>慢<input type="range" id="rateIn" min="0.6" max="1.5" step="0.1" value="${draft.voice.rate}">快</label><button class="toy pill-btn" data-try="1">🔈 试听</button></div>${voiceChips()}</div>
         <div class="opt"><span class="lb">肤色</span><div class="sw-row">${sw('skin',SKINS)}</div></div>
         <div class="opt"><span class="lb">发型</span><div class="sw-row">${chips('hair',HAIRS)}</div></div>
@@ -2143,6 +2161,12 @@ function editorClick(b, e){
       if(id==='rateIn') draft.voice.rate = +e.target.value;
       if(id.startsWith('tr_')){ draft.traits[id.slice(3)] = +e.target.value; draft.pers = persFromTraits(draft.traits); const po = $('#persOut'); if(po) po.textContent = persName({pers:draft.pers, traits:draft.traits}); }
       return; }
+    if(b.dataset.gender){
+      const g = b.dataset.gender, v = draft.voice; v.g = g; v.name = null;
+      if(g==='f' && v.pitch < 1.05) v.pitch = Math.round(rand(1.1,1.5)*10)/10;
+      if(g==='m' && v.pitch > 1.1) v.pitch = Math.round(rand(.75,1.05)*10)/10;
+      renderEdOpts(); speakWith(v, `我是${draft.name||'新朋友'}，${draft.catch||''}`); return;
+    }
     if(b.dataset.vname !== undefined){ draft.voice.name = b.dataset.vname || null; renderEdOpts(); speakWith(draft.voice, `我是${draft.name||'新朋友'}，${draft.catch||''}`); return; }
     if(b.dataset.try){ speakWith(draft.voice, `我是${draft.name||'新朋友'}，${pick(TALK[draft.pers])}，${draft.catch||''}`); return; }
     if(b.dataset.go && editing){
@@ -2393,7 +2417,7 @@ function frame(dt, t){
 S = loadState();
 S.inv = Object.assign({food:{},acc:{},furn:{},cloth:{}}, S.inv||{});
 if(!S.log) S.log = [];
-S.residents.forEach(d=>{ if(!d.catch) d.catch = pick(CATCHES); if(d.partner===undefined) d.partner = null; if(!d.voice) d.voice = newVoice(); if(d.voice.seed==null) d.voice.seed = Math.random(); if(!d.traits){ d.traits = traitsFor(d.pers); } if(!d.bday) d.bday = ri(1,YEAR); if(!d.outfit) d.outfit = 'tee'; if(!d.songs) d.songs = [songCopy(pick(SONG_BOOK))]; });
+S.residents.forEach(d=>{ if(!d.catch) d.catch = pick(CATCHES); if(d.partner===undefined) d.partner = null; if(!d.voice) d.voice = newVoice(); if(d.voice.seed==null) d.voice.seed = Math.random(); if(!d.voice.g){ d.voice.g = guessGender(d); if(d.voice.g==='m' && d.voice.pitch > 1.1) d.voice.pitch = Math.round(rand(.75,1.05)*10)/10; if(d.voice.g==='f' && d.voice.pitch < 1.05) d.voice.pitch = Math.round(rand(1.1,1.5)*10)/10; } if(!d.traits){ d.traits = traitsFor(d.pers); } if(!d.bday) d.bday = ri(1,YEAR); if(!d.outfit) d.outfit = 'tee'; if(!d.songs) d.songs = [songCopy(pick(SONG_BOOK))]; });
 if(S.visitor && (S.hour >= 20 || S.hour < 6)) S.visitor = null;
 S.residents.forEach(d=>addResident(d,false));
 spawnVisitor();
