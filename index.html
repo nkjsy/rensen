@@ -1057,10 +1057,11 @@ function byId(id){ return residents.find(x=>x.d.id===id); }
 function logNews(msg){ if(!S.log) S.log = []; S.log.push(msg); if(S.log.length > 30) S.log.shift(); }
 function isFamily(a,b){ const pa = a.d.parents||[], pb = b.d.parents||[]; return pa.includes(b.d.id) || pb.includes(a.d.id) || pa.some(x=>pb.includes(x)); }
 function gOf(r){ return (r.d.voice && r.d.voice.g) || 'f'; }
-// likes: 'opp' opposite gender (default) / 'same' / 'any' — both sides have to be into each other
-function likesG(x, y){ const l = x.d.likes || 'opp'; return l==='any' || (l==='opp' ? gOf(x)!==gOf(y) : gOf(x)===gOf(y)); }
-function canRomance(a,b){ return !a.d.kid && !b.d.kid && !a.d.partner && !b.d.partner && !isFamily(a,b) && likesG(a,b) && likesG(b,a); }
-function parentsLine(d){ const ps = (d.parents||[]).map(byId).filter(Boolean); if(ps.length < 2) return '家里人最好了'; const t = ps.map(p=>gOf(p)==='f' ? '妈妈' : '爸爸'); return (t[0]===t[1] ? '两个' + t[0] : '爸爸妈妈') + '最好了'; }
+// romance is only between a girl and a boy
+function canRomance(a,b){ return !a.d.kid && !b.d.kid && !a.d.partner && !b.d.partner && !isFamily(a,b) && gOf(a)!==gOf(b); }
+// couples that no longer fit (old saves, or a gender changed in the editor) go back to being good friends
+function fixCouples(){ residents.forEach(r=>{ const pt = r.d.partner && byId(r.d.partner); if(pt && gOf(pt)===gOf(r)){ r.d.partner = pt.d.partner = null; r.d.pType = pt.d.pType = null; } }); }
+function parentsLine(d){ return '爸爸妈妈最好了'; }
 function hasSocialWant(r){ return !!(r.d.want && SOCIAL.includes(r.d.want.type)); }
 function relName(a,b){ if(a.d.partner===b.d.id) return a.d.pType==='spouse' ? '💍 夫妻' : '💑 恋人'; if(isFamily(a,b)) return '👪 家人'; return null; }
 function quarrel(a,b){
@@ -2301,14 +2302,14 @@ function openAlbum(){
 let editorOpen = false, draft = null, pvRenderer = null, pvScene = null, pvCam = null, pvModel = null, editing = null;
 function openEditor(r){
   editing = r || null;
-  if(r){ const d = r.d; draft = {tab:'basic', name:d.name, look:Object.assign({}, d.look), pers:d.pers, traits:Object.assign({}, d.traits||traitsFor(d.pers)), likes:d.likes||'opp', outfit:d.outfit, catch:d.catch||'', voice:Object.assign({}, d.voice||newVoice()), slot:d.slot}; sfx.pop(); renderEditor(); return; }
+  if(r){ const d = r.d; draft = {tab:'basic', name:d.name, look:Object.assign({}, d.look), pers:d.pers, traits:Object.assign({}, d.traits||traitsFor(d.pers)), outfit:d.outfit, catch:d.catch||'', voice:Object.assign({}, d.voice||newVoice()), slot:d.slot}; sfx.pop(); renderEditor(); return; }
   const used = new Set(residents.map(r=>r.d.slot));
   const free = SLOTS.slice(0, slotCap()).map((_,i)=>i).filter(i=>!used.has(i));
   if(!free.length){ toast(`小岛住满啦（最多 ${slotCap()} 位居民）`); return; }
   sfx.pop();
   const usedNames = new Set(residents.map(r=>r.d.name));
   const tr = {move:ri(0,8), talk:ri(0,8), social:ri(0,8), mind:ri(0,8)}, voice = newVoice();
-  draft = {tab:'basic', name: pick(NAMES.filter(n=>!usedNames.has(n)).concat(['新朋友'])), look:newLook(voice.g), traits:tr, pers:persFromTraits(tr), likes:'opp', outfit:'tee', slot:free[0], catch:pick(CATCHES), voice};
+  draft = {tab:'basic', name: pick(NAMES.filter(n=>!usedNames.has(n)).concat(['新朋友'])), look:newLook(voice.g), traits:tr, pers:persFromTraits(tr), outfit:'tee', slot:free[0], catch:pick(CATCHES), voice};
   renderEditor(); editorOpen = true;
 }
 function renderEditor(){
@@ -2336,7 +2337,6 @@ function renderEdOpts(){
   if(tab==='basic') h += `
     <div class="opt"><label for="nameInput">名字</label><div class="name-row"><input id="nameInput" maxlength="6" value="${esc(draft.name)}" autocomplete="off"></div></div>
     ${opt('性别', `<button class="chip ${draft.voice.g==='f'?'on':''}" data-gender="f">女生</button><button class="chip ${draft.voice.g==='m'?'on':''}" data-gender="m">男生</button>`)}
-    ${opt('恋爱对象', [['opp','异性'],['same','同性'],['any','都可以']].map(([k,n])=>`<button class="chip ${draft.likes===k?'on':''}" data-likes="${k}">${n}</button>`).join(''))}
     <div class="opt"><label for="catchInput">口头禅</label><div class="name-row"><input id="catchInput" maxlength="5" value="${esc(draft.catch)}" autocomplete="off"></div></div>
     <div class="opt"><span class="lb">性格</span>${TRAIT_AXES.map(([k,l,rr])=>slider('tr_'+k, l, rr, draft.traits[k])).join('')}<div class="pers-name" id="persOut">${persName({pers:draft.pers, traits:draft.traits})}</div></div>`;
   if(tab==='face') h += opt('肤色', sw('skin',SKINS)) + opt('眼睛', chips('eyes',EYES,'round')) + opt('眉毛', chips('brows',BROWS,'normal'))
@@ -2356,7 +2356,6 @@ function editorClick(b, e){
       if(id.startsWith('tr_')){ draft.traits[id.slice(3)] = +e.target.value; draft.pers = persFromTraits(draft.traits); const po = $('#persOut'); if(po) po.textContent = persName({pers:draft.pers, traits:draft.traits}); }
       return; }
     if(b.dataset.etab){ draft.tab = b.dataset.etab; sfx.pop(); renderEdOpts(); return; }
-    if(b.dataset.likes){ draft.likes = b.dataset.likes; sfx.pop(); renderEdOpts(); return; }
     if(b.dataset.gender){
       const g = b.dataset.gender, v = draft.voice; v.g = g; v.name = null;
       if(g==='f' && v.pitch < 1.05) v.pitch = Math.round(rand(1.1,1.5)*10)/10;
@@ -2368,8 +2367,8 @@ function editorClick(b, e){
     if(b.dataset.try){ speakWith(draft.voice, `我是${draft.name||'新朋友'}，${pick(TALK[draft.pers])}，${draft.catch||''}`); return; }
     if(b.dataset.go && editing){
       const r = editing, d = r.d; editing = null;
-      d.name = ((draft.name||'').trim() || d.name).slice(0,6); d.look = draft.look; d.pers = draft.pers; d.traits = draft.traits; d.likes = draft.likes; r.speed = 1.7 + d.traits.move*.14; d.catch = (draft.catch||'').trim().slice(0,5) || d.catch; d.voice = draft.voice;
-      closeModal(); rebuildChar(r); buildHouse(r); save(); sfx.happy();
+      d.name = ((draft.name||'').trim() || d.name).slice(0,6); d.look = draft.look; d.pers = draft.pers; d.traits = draft.traits; r.speed = 1.7 + d.traits.move*.14; d.catch = (draft.catch||'').trim().slice(0,5) || d.catch; d.voice = draft.voice;
+      closeModal(); rebuildChar(r); buildHouse(r); fixCouples(); save(); sfx.happy();
       toast(`${d.name} 换了新造型！`, 'gold'); cam.goal.copy(r.p.root.position);
       if(r.state!=='home') beHappy(r,'✨',1.8);
       r.say = '嘿嘿，好看吗？' + d.catch; r.spoken = r.say; speakWith(d.voice, r.say);
@@ -2377,7 +2376,7 @@ function editorClick(b, e){
     }
     if(b.dataset.go){
       const name = (draft.name||'').trim() || '新朋友';
-      const d = makeResData(name.slice(0,6), draft.look, draft.pers, draft.slot); d.traits = draft.traits; d.likes = draft.likes; d.catch = (draft.catch||'').trim().slice(0,5) || pick(CATCHES); d.voice = draft.voice;
+      const d = makeResData(name.slice(0,6), draft.look, draft.pers, draft.slot); d.traits = draft.traits; d.catch = (draft.catch||'').trim().slice(0,5) || pick(CATCHES); d.voice = draft.voice;
       closeModal(); const r = addResident(d, true);
       save(); sfx.happy(); toast(`欢迎 ${d.name} 搬进心心小岛！`, 'gold'); logNews(`🏠 ${d.name} 搬进了小岛`);
       cam.goal.copy(r.p.root.position); confetti(scene, r.p.root.position); if(!isNight()) beHappy(r,'👋',2);
@@ -2619,7 +2618,8 @@ if(!S.log) S.log = [];
 S.residents.forEach(d=>{ if(!d.catch) d.catch = pick(CATCHES); if(d.partner===undefined) d.partner = null; if(!d.voice) d.voice = newVoice(); if(d.voice.seed==null) d.voice.seed = Math.random(); if(!d.voice.g){ d.voice.g = guessGender(d); if(d.voice.g==='m' && d.voice.pitch > 1.1) d.voice.pitch = Math.round(rand(.75,1.05)*10)/10; if(d.voice.g==='f' && d.voice.pitch < 1.05) d.voice.pitch = Math.round(rand(1.1,1.5)*10)/10; } if(!d.traits){ d.traits = traitsFor(d.pers); } if(!d.bday) d.bday = ri(1,YEAR); if(!d.outfit) d.outfit = 'tee'; if(!d.songs) d.songs = [songCopy(pick(SONG_BOOK))]; });
 if(S.visitor && (S.hour >= 20 || S.hour < 6)) S.visitor = null;
 if(S.isleLevel) applyIsleLevel();
-S.residents.forEach(d=>addResident(d,false));
+S.residents.forEach(d=>{ delete d.likes; addResident(d,false); });
+fixCouples();
 spawnVisitor();
 updateCoins(); updateNewsDot(); onResize(); applySky(); loop();
 if(/[?&]debug\b/.test(location.search)) window.__isle = {get S(){ return S; }, get residents(){ return residents; }, get ev(){ return ev; }, get show(){ return show; }, get visitor(){ return visitor; }, quarrel, rebuildChar, cam, checkExpand, applyIsleLevel, canRomance, parentsLine, music(){ return {mStep, musicOn, soundOn, ctx: actx && actx.state}; }, voices(){ return zhVoices.map(v=>v.name+" | "+v.lang); }, pickVoice, speechText, natPitch, startParty, startConcert, openConcert, openAsk, openVisitor, spawnVisitor, makeVisitor, applyLv, openPark, openCafe, openLoc, songSeq, openShop, openRPS, takePhoto, openEditor, step(secs){ for(let i=0;i<secs*30;i++){ simT += 1/30; frame(1/30, simT); } }, select, startEvent, morning, enterRoom, openNews, showDream, byId};
