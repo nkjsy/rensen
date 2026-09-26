@@ -447,7 +447,7 @@ function ac(){
     lp.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(comp);
     audioOut = lp;
   }catch(e){} }
-  if(actx && actx.state==='suspended') try{ actx.resume(); }catch(e){}
+  if(actx && actx.state==='suspended' && !document.hidden && document.hasFocus()) try{ actx.resume(); }catch(e){}
   return actx;
 }
 function tone(f, dur=.12, type='sine', vol=.12, when=0, glide=0){
@@ -516,7 +516,7 @@ function natPitch(v){
 function natRate(v){ return clamp(1 + (((v && v.rate) || 1) - 1)*.5, .82, 1.22); }
 function speechText(t){ return String(t).replace(/[🀀-🫿☀-➿⬀-⯿️‍⃣]/gu, '').replace(/[~～「」“”"]/g, '').replace(/…+/g, '，').replace(/\s+/g, ' ').trim(); }
 function speakWith(voice, text){
-  if(!soundOn || !window.speechSynthesis || !text) return;
+  if(!soundOn || !window.speechSynthesis || !text || document.hidden || !document.hasFocus()) return;
   const clean = speechText(text); if(!clean) return;
   try{
     speechSynthesis.cancel();
@@ -1916,7 +1916,7 @@ function songSeq(song, d){
 }
 function playSungNote(n, voice){
   tone(mf(n.m), Math.min(.6, n.dur*.95), 'triangle', .05);
-  if(!soundOn || !window.speechSynthesis) return;
+  if(!soundOn || !window.speechSynthesis || document.hidden || !document.hasFocus()) return;
   try{
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(n.ch), v = pickVoice(voice); if(v){ u.voice = v; u.lang = v.lang; } else u.lang = 'zh-CN';
@@ -2175,6 +2175,12 @@ function musicTick(){
   }
 }
 setInterval(musicTick, 120);
+// go silent when the game isn't in front (another tab, another app, minimized); pick up again on return
+function audioAway(){ try{ if(actx && actx.state==='running') actx.suspend(); if(window.speechSynthesis) speechSynthesis.cancel(); }catch(e){} }
+function audioBack(){ try{ if(actx && actx.state==='suspended' && !document.hidden) actx.resume(); }catch(e){} }
+window.addEventListener('blur', audioAway); window.addEventListener('pagehide', audioAway);
+window.addEventListener('focus', audioBack);
+document.addEventListener('visibilitychange', ()=>{ document.hidden ? audioAway() : (document.hasFocus() && audioBack()); });
 
 /* ---------------- island expansion ---------------- */
 // once the first 8 plots are full the island grows: an outer ring of 8 more plots and three new places
