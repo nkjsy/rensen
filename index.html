@@ -127,6 +127,39 @@ textarea.text-in{width:100%;box-sizing:border-box;min-height:100px;resize:vertic
 
 /* editor */
 .editor{display:grid;grid-template-columns:220px 1fr;gap:16px}
+.modal:has(.mii-wrap){max-width:920px}
+.mii{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
+@media (max-width:700px){.mii{grid-template-columns:1fr}}
+.mii .pv-wrap{position:sticky;top:0}
+.mii #pv{width:280px;height:280px}
+@media (max-width:700px){.mii #pv{width:200px;height:200px}.mii .pv-wrap{position:static}.mii-step{font-size:13px;padding:4px 9px 5px 5px}}
+.pv-name{font-family:var(--display);font-size:20px}
+.mii-steps{display:flex;align-items:center;gap:6px;margin:0 0 14px;flex-wrap:wrap}
+.mii-step{display:flex;align-items:center;gap:6px;padding:5px 12px 6px 6px;border:3px solid var(--ink);border-radius:20px;background:#fff;font-size:15px;font-family:var(--display);color:var(--ink);cursor:pointer}
+.mii-step b{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#EDE7F3;font-size:14px}
+.mii-step.on{background:var(--coral);color:#fff}.mii-step.on b{background:#fff;color:var(--coral)}
+.mii-step.done b{background:#5CC9A7;color:#fff}
+.mii-dash{flex:0 0 14px;height:3px;background:var(--ink);border-radius:2px}
+.mii-cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:6px;margin-bottom:12px}
+.cat{display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 2px 6px;font-size:12px;border-radius:14px}
+.cat span{font-size:22px;line-height:1.1}
+.cat.on{background:var(--coral);color:#fff}
+.mii-panel{background:#FFF6E6;border:3px solid var(--ink);border-radius:18px;padding:12px}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px;margin-bottom:12px}
+.th{position:relative;border:3px solid var(--ink);border-radius:16px;padding:0 0 4px;background:#fff;box-shadow:0 3px 0 var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;font-size:12px;color:var(--ink);overflow:hidden}
+.th img{width:100%;aspect-ratio:1;display:block;border-bottom:2px solid #EDE7F3}
+.th i{font-style:normal;aspect-ratio:1;width:100%;display:grid;place-items:center;font-size:14px}
+.th.on{background:var(--coral);color:#fff;box-shadow:0 3px 0 var(--ink),0 0 0 3px #FFD23F inset}
+.adj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;align-items:center}
+.adj{display:flex;align-items:center;gap:6px;background:#fff;border:3px solid var(--ink);border-radius:14px;padding:4px 8px}
+.adj span{flex:1;font-family:var(--display);font-size:15px}
+.adj b{min-width:22px;text-align:center}
+.adj button{width:40px;height:34px;font-size:16px;border-radius:10px;padding:0}
+.mii-tip{font-size:13px;color:var(--ink-soft);margin:6px 0}
+.mii-nav{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px}
+.mii-nav .big-go{width:auto;flex:1;max-width:360px;margin:0}
+.voice-big label{font-size:15px}
+.pers-card{background:#fff;border:3px solid var(--ink);border-radius:18px;padding:12px;text-align:center}
 @media (max-width:560px){.editor{grid-template-columns:1fr}}
 .pv-wrap{align-self:start;background:linear-gradient(#BFEFFF,#E8FAFF);border:3px solid var(--ink);border-radius:20px;display:flex;flex-direction:column;align-items:center;padding:8px;gap:8px}
 #pv{width:200px;height:200px;max-width:100%;display:block}
@@ -206,6 +239,7 @@ textarea.text-in{width:100%;box-sizing:border-box;min-height:100px;resize:vertic
   <button class="toy dock-btn" id="bNew"><span class="ic">🧑‍🎨</span>新居民</button>
   <button class="toy dock-btn" id="bShop"><span class="ic">🏪</span>小卖部</button>
   <button class="toy dock-btn" id="bFriends"><span class="ic">💞</span>好朋友</button>
+  <button class="toy dock-btn" id="bPets"><span class="ic">🐾</span>宠物</button>
   <button class="toy dock-btn hot" id="bSleep" hidden><span class="ic">🌙</span>睡到天亮</button>
 </div>
 
@@ -716,6 +750,7 @@ function flower5(g, x, y, r, petal, mid){ g.fillStyle = petal; for(let i=0;i<5;i
 
 function drawEye(g, cx, cy, s, look, girl){
   const E = look.eyes || 'round', u = FK, ink = '#2A1F2E', col = look.eyeColor || '#4A3226';
+  if(E==='none') return;
   const lid = (pts, w0, w1, wm) => { g.fillStyle = ink; taper(g, ...pts, w0, w1, wm); };
   if(E==='dot'){
     const rg = g.createRadialGradient(cx-.012*u, cy-.015*u, 1, cx, cy, .055*u); rg.addColorStop(0, mixHex(col,'#000',.2)); rg.addColorStop(1, ink);
@@ -837,16 +872,27 @@ function drawPaint(g, look){
   if(P==='clown'){ const [nx, ny] = facePx(0, -.06); const rg = g.createRadialGradient(nx-.02*u, ny-.02*u, 2, nx, ny, .07*u); rg.addColorStop(0, '#FF8A8A'); rg.addColorStop(1, '#E0243A'); g.fillStyle = rg; g.beginPath(); g.arc(nx, ny, .065*u, 0, Math.PI*2); g.fill(); }
   g.restore();
 }
+// Mii-style part adjustments: each value is a small integer step (about -4..4)
+const ADJ_KEYS = ['eyeY','eyeSize','eyeGap','eyeRot','browY','browSize','browGap','browRot','noseY','noseSize','mouthY','mouthSize'];
+function av(look, k){ return +look[k] || 0; }
+function drawFace(g, look, girl){
+  drawCheeks(g, look);
+  const eY = av(look,'eyeY')*.02, eS = 1 + av(look,'eyeSize')*.08, eG = av(look,'eyeGap')*.015, eR = av(look,'eyeRot')*.09;
+  const bY = av(look,'browY')*.02, bS = 1 + av(look,'browSize')*.08, bG = av(look,'browGap')*.015, bR = av(look,'browRot')*.09;
+  // eyeshadow sits under the eye drawing
+  if(look.shadow && look.shadow!=='none') [-1,1].forEach(s=>{ const [x,y] = facePx(s*(.22+eG), .08+eY); const rg = g.createRadialGradient(x, y+.02*FK, 2, x, y, .12*FK*eS); rg.addColorStop(0, rgba(look.shadow,.6)); rg.addColorStop(1, rgba(look.shadow,0)); g.fillStyle = rg; g.beginPath(); g.ellipse(x, y, .13*FK*eS, .08*FK*eS, 0, 0, Math.PI*2); g.fill(); });
+  [-1,1].forEach(s=>{
+    const [ex,ey] = facePx(s*(.22+eG), .04+eY); g.save(); g.translate(ex,ey); g.rotate(-s*eR); g.scale(eS,eS); drawEye(g, 0, 0, s, look, girl); g.restore();
+    const [bx,by] = facePx(s*(.22+bG), .21+bY); g.save(); g.translate(bx,by); g.rotate(-s*bR); g.scale(bS,bS); drawBrow(g, 0, 0, s, look); g.restore();
+  });
+  const [nx, ny] = facePx(0, -.06 + av(look,'noseY')*.018), nS = 1 + av(look,'noseSize')*.1; g.save(); g.translate(nx,ny); g.scale(nS,nS); drawNose(g, 0, 0, look); g.restore();
+  drawPaint(g, look);
+}
 function faceTexture(look, girl){
-  const key = 'face|' + [look.skin, look.hairColor, look.eyes, look.eyeColor, look.brows, look.nose, look.cheek, look.paint, look.paintColor, look.shadow, girl?1:0].join('|');
+  const key = 'face|' + [look.skin, look.hairColor, look.eyes, look.eyeColor, look.brows, look.nose, look.cheek, look.paint, look.paintColor, look.shadow, girl?1:0, ...ADJ_KEYS.slice(0,10).map(k=>av(look,k))].join('|');
   if(texCache2[key]) return texCache2[key];
   const c = document.createElement('canvas'); c.width = c.height = FT; const g = c.getContext('2d');
-  drawCheeks(g, look);
-  // eyeshadow sits under the eye drawing
-  if(look.shadow && look.shadow!=='none') [-1,1].forEach(s=>{ const [x,y] = facePx(s*.22, .08); const rg = g.createRadialGradient(x, y+.02*FK, 2, x, y, .12*FK); rg.addColorStop(0, rgba(look.shadow,.6)); rg.addColorStop(1, rgba(look.shadow,0)); g.fillStyle = rg; g.beginPath(); g.ellipse(x, y, .13*FK, .08*FK, 0, 0, Math.PI*2); g.fill(); });
-  [-1,1].forEach(s=>{ const [ex,ey] = facePx(s*.22, .04); drawEye(g, ex, ey, s, look, girl); const [bx,by] = facePx(s*.22, .21); drawBrow(g, bx, by, s, look); });
-  const [nx, ny] = facePx(0, -.06); drawNose(g, nx, ny, look);
-  drawPaint(g, look);
+  drawFace(g, look, girl);
   const t = new T.CanvasTexture(c); t.anisotropy = 4; texCache2[key] = t; return t;
 }
 // mouth texture is drawn upside down: the mouth group is flipped (rotation.z = π) when the resident is happy
@@ -916,6 +962,99 @@ function patTex(base, pat){
 }
 function patMat(base, pat){ if(!pat || pat==='none') return M(base); const k = 'patm' + base + pat; if(!matCache[k]) matCache[k] = new T.MeshToonMaterial({color:'#FFFFFF', map:patTex(base,pat), gradientMap:GRAD}); return matCache[k]; }
 
+// face shapes scale the whole head; glasses are real 3D frames that follow the eye position
+const FACE_SHAPES = [{id:'round',n:'圆脸',s:[1,1,1]},{id:'oval',n:'鹅蛋脸',s:[.94,1.05,.97]},{id:'wide',n:'宽脸',s:[1.08,.95,1]},{id:'long',n:'长脸',s:[.9,1.1,.96]},{id:'small',n:'小脸',s:[.94,.95,.94]}];
+const GLASSES = [{id:'none',n:'无'},{id:'round',n:'圆框'},{id:'square',n:'方框'},{id:'half',n:'半框'},{id:'star',n:'星星'},{id:'heart',n:'爱心'}];
+const GLASS_COLORS = ['#2A2438','#8A5A3C','#C9A227','#FF5E8A','#4DA3FF','#FFFFFF'];
+function buildGlasses(look){
+  const g = new T.Group(), m = M(look.glassesColor || '#2A2438'), G2 = look.glasses;
+  const eY = .04 + av(look,'eyeY')*.02, eG = .22 + av(look,'eyeGap')*.015, r = .13*(1 + av(look,'eyeSize')*.06), z = .6;
+  const lensMat = new T.MeshBasicMaterial({color:'#DFF6FF', transparent:true, opacity:.18, depthWrite:false});
+  [-1,1].forEach(s=>{
+    const x = s*eG; let ring;
+    if(G2==='round') ring = new T.Mesh(new T.TorusGeometry(r, .016, 8, 28), m);
+    if(G2==='square'){ ring = new T.Mesh(new T.TorusGeometry(r*1.05, .018, 6, 4), m); ring.rotation.z = Math.PI/4; ring.scale.set(1.15,.85,1); }
+    if(G2==='half') ring = new T.Mesh(new T.TorusGeometry(r, .02, 8, 20, Math.PI), m);
+    if(G2==='star' || G2==='heart'){
+      const sh = new T.Shape(), n = G2==='star' ? 10 : 0;
+      if(G2==='star') for(let i=0;i<n;i++){ const a = Math.PI/2 + i*Math.PI/5, rr = i%2 ? r*.55 : r*1.15; i ? sh.lineTo(Math.cos(a)*rr, Math.sin(a)*rr) : sh.moveTo(Math.cos(a)*rr, Math.sin(a)*rr); }
+      else { const k = r*1.05; sh.moveTo(0,-k*.9); sh.bezierCurveTo(-k*1.4,-k*.1,-k*.7,k*1.1,0,k*.35); sh.bezierCurveTo(k*.7,k*1.1,k*1.4,-k*.1,0,-k*.9); }
+      ring = new T.Group(); const pts = sh.getPoints(40);
+      for(let i=0;i<pts.length-1;i++){ const a = pts[i], b = pts[i+1], len = Math.hypot(b.x-a.x, b.y-a.y); if(len < 1e-4) continue; const seg = new T.Mesh(G.cyl(.014,.014,len,5), m); seg.position.set((a.x+b.x)/2, (a.y+b.y)/2, 0); seg.rotation.z = Math.atan2(b.y-a.y, b.x-a.x) - Math.PI/2; ring.add(seg); }
+      const lens = new T.Mesh(new T.ShapeGeometry(sh), new T.MeshBasicMaterial({color: G2==='star' ? '#FFE066' : '#FF8FB1', transparent:true, opacity:.35, depthWrite:false})); lens.position.z = -.005; ring.add(lens);
+    }
+    ring.position.set(x, eY, z); g.add(ring);
+    if(G2!=='star' && G2!=='heart'){ const lens = new T.Mesh(new T.CircleGeometry(r*.95, 24), lensMat); lens.position.set(x, eY, z-.004); if(G2==='square') lens.scale.set(1.1,.85,1); g.add(lens); }
+    const arm = mesh(G.box(.02,.02,.42), m, s*(eG + r + .02), eY + .02, .38); arm.rotation.y = s*-.12; g.add(arm);
+  });
+  g.add(mesh(G.box(Math.max(.02, eG*2 - r*2 - .01), .018, .018), m, 0, eY + (G2==='half' ? r*.1 : r*.25), z + .01));
+  return g;
+}
+
+// ---- thumbnails for the Mii-style part picker ----
+const thumbCache = {};
+function roundBg(g, S, col){ g.fillStyle = col; g.beginPath(); if(g.roundRect) g.roundRect(0,0,S,S,S*.18); else g.rect(0,0,S,S); g.fill(); }
+// draw part of the face (centre cx,cy and width w in head units) into a small square
+function faceThumb(look, girl, cx, cy, w){
+  const key = 'ft|' + JSON.stringify(look) + girl + cx + cy + w; if(thumbCache[key]) return thumbCache[key];
+  const S = 96, c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d');
+  roundBg(g, S, look.skin);
+  const [px, py] = facePx(cx, cy), sc = S/(w*FK); g.translate(S/2, S/2); g.scale(sc, sc); g.translate(-px, -py); drawFace(g, look, girl);
+  return thumbCache[key] = c.toDataURL();
+}
+function mouthThumb(look){
+  const key = 'mt|' + look.skin + look.mouth + look.lip; if(thumbCache[key]) return thumbCache[key];
+  const S = 96, c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d');
+  roundBg(g, S, look.skin); g.translate(S/2, S/2); g.rotate(Math.PI); g.drawImage(mouthTexture(look).image, -S*.55, -S*.275, S*1.1, S*.55);
+  return thumbCache[key] = c.toDataURL();
+}
+function shapeThumb(look, f){
+  const key = 'st|' + look.skin + f.id; if(thumbCache[key]) return thumbCache[key];
+  const S = 96, c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d');
+  roundBg(g, S, '#FFF6E6'); g.fillStyle = look.skin; g.strokeStyle = '#3B3355'; g.lineWidth = 3;
+  g.beginPath(); g.ellipse(S/2, S/2+2, 30*f.s[0], 32*f.s[1], 0, 0, Math.PI*2); g.fill(); g.stroke();
+  g.fillStyle = '#2A1F2E'; [-1,1].forEach(s=>{ g.beginPath(); g.arc(S/2+s*11*f.s[0], S/2, 3.5, 0, Math.PI*2); g.fill(); });
+  g.lineWidth = 2.5; g.beginPath(); g.arc(S/2, S/2+10, 7, .2, Math.PI-.2); g.stroke();
+  return thumbCache[key] = c.toDataURL();
+}
+function patThumb(base, id){
+  const key = 'pt|' + base + id; if(thumbCache[key]) return thumbCache[key];
+  const S = 96, c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d');
+  roundBg(g, S, base); if(id!=='none'){ g.save(); g.beginPath(); if(g.roundRect) g.roundRect(0,0,S,S,S*.18); else g.rect(0,0,S,S); g.clip(); g.drawImage(patTex(base, id).image, 0, 0, S, S); g.restore(); }
+  return thumbCache[key] = c.toDataURL();
+}
+function glassThumb(look, id){
+  const key = 'gt|' + look.skin + id + look.glassesColor; if(thumbCache[key]) return thumbCache[key];
+  const S = 96, c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d');
+  roundBg(g, S, look.skin); g.strokeStyle = look.glassesColor || '#2A2438'; g.lineWidth = 4; g.lineJoin = 'round';
+  [-1,1].forEach(s=>{ const x = S/2 + s*20, y = S/2;
+    g.beginPath();
+    if(id==='round') g.arc(x, y, 14, 0, Math.PI*2);
+    if(id==='square') g.rect(x-16, y-11, 32, 22);
+    if(id==='half'){ g.moveTo(x-16, y-4); g.quadraticCurveTo(x, y-16, x+16, y-4); }
+    if(id==='star'){ for(let i=0;i<10;i++){ const a = -Math.PI/2 + i*Math.PI/5, rr = i%2 ? 8 : 17; g.lineTo(x+Math.cos(a)*rr, y+Math.sin(a)*rr); } g.closePath(); }
+    if(id==='heart'){ g.moveTo(x, y+13); g.bezierCurveTo(x-22, y-2, x-10, y-20, x, y-7); g.bezierCurveTo(x+10, y-20, x+22, y-2, x, y+13); }
+    if(id!=='none') g.stroke();
+  });
+  if(id!=='none'){ g.beginPath(); g.moveTo(S/2-6, S/2-4); g.lineTo(S/2+6, S/2-4); g.stroke(); }
+  else { g.strokeStyle = '#B9B2C6'; g.lineWidth = 5; g.beginPath(); g.arc(S/2, S/2, 22, 0, Math.PI*2); g.moveTo(S/2-15, S/2+15); g.lineTo(S/2+15, S/2-15); g.stroke(); }
+  return thumbCache[key] = c.toDataURL();
+}
+let thumbR = null, thumbScene = null, thumbCam = null;
+function hairThumb(look, id){
+  const key = 'ht|' + look.skin + look.hairColor + id; if(thumbCache[key]) return thumbCache[key];
+  try{
+    if(!thumbR){
+      thumbR = new T.WebGLRenderer({antialias:true, alpha:true, preserveDrawingBuffer:true}); thumbR.setPixelRatio(1); thumbR.setSize(96,96,false);
+      thumbScene = new T.Scene(); thumbScene.add(new T.HemisphereLight(0xffffff,0xbbbbbb,.8)); const dl = new T.DirectionalLight(0xffffff,.55); dl.position.set(2,4,5); thumbScene.add(dl);
+      thumbCam = new T.PerspectiveCamera(30,1,.1,20); thumbCam.position.set(0,.2,3.4); thumbCam.lookAt(0,.02,0);
+    }
+    const grp = new T.Group(); grp.add(new T.Mesh(G.sph(.62,28,20), M(look.skin))); grp.add(buildHair(Object.assign({}, look, {hair:id}))); grp.rotation.y = .5; grp.rotation.x = .08;
+    thumbScene.add(grp); thumbR.setClearColor(0xFFF6E6, 1); thumbR.render(thumbScene, thumbCam); const url = thumbR.domElement.toDataURL(); thumbScene.remove(grp);
+    return thumbCache[key] = url;
+  }catch(e){ return ''; }
+}
+
 function buildAcc(type){
   const g = new T.Group(); if(!type) return g;
   if(type==='strawhat'){ g.add(mesh(G.cyl(.95,.95,.05,24),M('#F2D16B'),0,.52,0)); g.add(mesh(G.cyl(.42,.5,.38,20),M('#F2D16B'),0,.72,0)); g.add(mesh(G.cyl(.51,.51,.1,20),M('#FF7A8A'),0,.58,0)); g.rotation.set(-.15,0,.12); }
@@ -974,8 +1113,11 @@ function buildChar(look, acc, outfit, opts){
   head.add(mesh(G.sph(.62,28,20), skin));
   const eyes = [], girl = !!(opts && opts.g==='f');
   head.add(new T.Mesh(FACE_GEO, decalMat(faceTexture(look, girl))));
-  const mouth = new T.Group(); mouth.position.set(0,-.21,.575); mouth.rotation.z = Math.PI; head.add(mouth);
+  const mouthBase = new T.Group(), mS = 1 + av(look,'mouthSize')*.1; mouthBase.position.y = av(look,'mouthY')*.02; mouthBase.scale.set(mS,mS,1); head.add(mouthBase);
+  const mouth = new T.Group(); mouth.position.set(0,-.21,.575); mouth.rotation.z = Math.PI; mouthBase.add(mouth);
   const mp = new T.Mesh(MOUTH_GEO, decalMat(mouthTexture(look))); mp.position.z = .04; mouth.add(mp);
+  const FS = FACE_SHAPES.find(f=>f.id===look.face) || FACE_SHAPES[0]; head.scale.set(.86*FS.s[0], .86*FS.s[1], .86*FS.s[2]);
+  if(look.glasses && look.glasses!=='none') head.add(buildGlasses(look));
   const BE = look.beard || 'none', beardM = M(look.hairColor, true);
   if(BE==='mustache') [-1,1].forEach(s=>{ const m = mesh(G.sph(.08,10,8), beardM, s*.085,-.12,.6); m.scale.set(1.5,.55,.5); m.rotation.z = s*.25; head.add(m); });
   if(BE==='beard'){ const b = new T.Mesh(new T.SphereGeometry(.645,24,10,Math.PI/2-1.25,2.5,Math.PI*.66,Math.PI*.24), beardM); head.add(b); }
@@ -2108,7 +2250,7 @@ function openSpring(){
   });
 }
 function openSalon(){
-  pickResident('💇 美发店', '选一位居民，换个发型、发色或者脸上的小细节。', r=>{ closeModal(); openEditor(r); draft.tab = 'hair'; renderEdOpts(); });
+  pickResident('💇 美发店', '选一位居民，换个发型、发色或者脸上的小细节。', r=>{ closeModal(); openEditor(r); draft.cat = 'hair'; renderEdOpts(); });
 }
 
 /* ---------------- time of day ---------------- */
@@ -2229,7 +2371,7 @@ function onTap(x, y){
   ndc.set(x/innerWidth*2-1, -(y/innerHeight)*2+1);
   if(mode==='room'){ roomTap(); return; }
   ray.setFromCamera(ndc, camera);
-  const objs = [...residents.filter(r=>r.p.root.visible).map(r=>r.p.hit), ...(visitor ? [visitor.p.hit] : []), ...Object.values(houses), ...Object.values(LOC_G), shopStand, ground];
+  const objs = [...residents.filter(r=>r.p.root.visible).map(r=>r.p.hit), ...pets.filter(p=>p.p.root.visible).map(p=>p.p.hit), ...(visitor ? [visitor.p.hit] : []), ...Object.values(houses), ...Object.values(LOC_G), shopStand, ground];
   const hits = ray.intersectObjects(objs, true);
   for(const h of hits){
     let o = h.object; while(o && !o.userData.pick && o!==ground) o = o.parent;
@@ -2241,6 +2383,7 @@ function onTap(x, y){
     if(pk.type==='shop'){ sfx.pop(); openShop(); return; }
     if(pk.type==='loc'){ openLoc(pk.k); return; }
     if(pk.type==='visitor'){ sfx.pop(); openVisitor(); return; }
+    if(pk.type==='pet'){ petSound(pk.pw.d.kind); openPetSheet(pk.pw); return; }
   }
 }
 
@@ -2294,7 +2437,7 @@ function renderSheet(){
   el.innerHTML = `
     <div class="sheet-head">
       <div class="face-dot" ${hairDot(d)}></div>
-      <div><h2>${esc(d.name)}</h2><div class="tags"><span class="tag">${gOf(r)==='f' ? '👧 女生' : '👦 男生'}</span><span class="tag">${persName(d)}</span><span class="tag">${d.level} 级</span><span class="tag">🎂 ${bdayText(d)}</span>${d.nick?`<span class="tag">外号「${esc(d.nick)}」</span>`:''}<span class="tag">最爱 ${FOODS[d.fav].e}</span><span class="tag">不爱 ${FOODS[d.dislike].e}</span>${pt?`<span class="tag">${d.pType==='spouse'?'💍 夫妻':'💑 恋人'} ${esc(pt.d.name)}</span>`:''}${d.kid?'<span class="tag">👶 宝宝</span>':''}</div></div>
+      <div><h2>${esc(d.name)}</h2><div class="tags"><span class="tag">${gOf(r)==='f' ? '👧 女生' : '👦 男生'}</span><span class="tag">${persName(d)}</span><span class="tag">${d.level} 级</span><span class="tag">🎂 ${bdayText(d)}</span>${d.nick?`<span class="tag">外号「${esc(d.nick)}」</span>`:''}<span class="tag">最爱 ${FOODS[d.fav].e}</span><span class="tag">不爱 ${FOODS[d.dislike].e}</span>${pt?`<span class="tag">${d.pType==='spouse'?'💍 夫妻':'💑 恋人'} ${esc(pt.d.name)}</span>`:''}${d.kid?'<span class="tag">👶 宝宝</span>':''}${pets.filter(pw=>pw.d.owner===d.id).map(pw=>`<span class="tag">${PET_KINDS[pw.d.kind].e} ${esc(pw.d.name)}</span>`).join('')}</div></div>
       <button class="toy close" data-close="1" aria-label="关闭">×</button>
     </div>
     <div class="bars">
@@ -2518,25 +2661,40 @@ function openAlbum(){
 /* ---------------- editor (new resident) ---------------- */
 let editorOpen = false, draft = null, pvRenderer = null, pvScene = null, pvCam = null, pvModel = null, pvHead = null, editing = null;
 const pvLook = new T.Vector3(0,1.2,0), pvTmp = new T.Vector3();
+// ---- Mii-style resident maker: 捏脸 → 资料 → 声音 → 性格, like Tomodachi Life ----
+const ED_STEPS = [['make','捏脸'],['info','资料'],['voice','声音'],['pers','性格']];
+const ED_CATS = [['shape','🙂','脸型'],['hair','💇','发型'],['brows','〰️','眉毛'],['eyes','👀','眼睛'],['nose','👃','鼻子'],['mouth','👄','嘴巴'],['beard','🧔','胡子'],['glasses','👓','眼镜'],['paint','🎨','化妆'],['body','🧍','身材'],['cloth','👕','衣服']];
+const FACE_CATS = ['shape','hair','brows','eyes','nose','mouth','beard','glasses','paint'];
+const ADJ_UI = {
+  eyes:[['eyeY','上下','▲','▼'],['eyeSize','大小','＋','－'],['eyeGap','间距','↔','→←'],['eyeRot','角度','↻','↺']],
+  brows:[['browY','上下','▲','▼'],['browSize','大小','＋','－'],['browGap','间距','↔','→←'],['browRot','角度','↻','↺']],
+  nose:[['noseY','上下','▲','▼'],['noseSize','大小','＋','－']],
+  mouth:[['mouthY','上下','▲','▼'],['mouthSize','大小','＋','－']]
+};
+const ADJ_MAX = {eyeY:5, browY:5, noseY:5, mouthY:5};
+const SAY_TESTS = [['👋','你好呀！'],['😊','今天好开心！'],['😢','呜呜，好难过……'],['😠','哼，我生气了！'],['🍙','肚子饿了'],['😲','哇，真的吗？']];
 function openEditor(r){
   editing = r || null;
-  if(r){ const d = r.d; draft = {tab:'basic', name:d.name, look:Object.assign({}, d.look), pers:d.pers, traits:Object.assign({}, d.traits||traitsFor(d.pers)), outfit:d.outfit, catch:d.catch||'', voice:Object.assign({}, d.voice||newVoice()), slot:d.slot}; sfx.pop(); renderEditor(); return; }
+  if(r){ const d = r.d; draft = {step:0, cat:'eyes', name:d.name, nick:d.nick||'', bday:d.bday||1, look:Object.assign({}, d.look), pers:d.pers, traits:Object.assign({}, d.traits||traitsFor(d.pers)), outfit:d.outfit, catch:d.catch||'', voice:Object.assign({}, d.voice||newVoice()), slot:d.slot}; sfx.pop(); renderEditor(); return; }
   const used = new Set(residents.map(r=>r.d.slot));
   const free = SLOTS.slice(0, slotCap()).map((_,i)=>i).filter(i=>!used.has(i));
   if(!free.length){ toast(`小岛住满啦（最多 ${slotCap()} 位居民）`); return; }
   sfx.pop();
   const usedNames = new Set(residents.map(r=>r.d.name));
   const tr = {move:ri(0,8), talk:ri(0,8), social:ri(0,8), mind:ri(0,8)}, voice = newVoice();
-  draft = {tab:'basic', name: pick(NAMES.filter(n=>!usedNames.has(n)).concat(['新朋友'])), look:newLook(voice.g), traits:tr, pers:persFromTraits(tr), outfit:'tee', slot:free[0], catch:pick(CATCHES), voice};
+  draft = {step:0, cat:'shape', name: pick(NAMES.filter(n=>!usedNames.has(n)).concat(['新朋友'])), nick:'', bday:ri(1,YEAR), look:newLook(voice.g), traits:tr, pers:persFromTraits(tr), outfit:'tee', slot:free[0], catch:pick(CATCHES), voice};
   renderEditor(); editorOpen = true;
 }
 function renderEditor(){
-  openModal(`<div class="modal-head"><h2>${editing ? '换个新造型' : '来了一位新居民'}</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>
-    <div class="editor">
-      <div class="pv-wrap"><div id="pvSlot"></div><button class="toy pill-btn" data-rand="1">🎲 随机一下</button></div>
+  const last = draft.step === ED_STEPS.length-1;
+  openModal(`<div class="mii-wrap"><div class="modal-head"><h2>${editing ? '换个新造型' : '来了一位新居民'}</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>
+    <div class="mii-steps">${ED_STEPS.map(([k,n],i)=>`<button class="mii-step ${i===draft.step?'on':''} ${i<draft.step?'done':''}" data-step="${i}"><b>${i+1}</b>${n}</button>`).join('<span class="mii-dash"></span>')}</div>
+    <div class="mii">
+      <div class="pv-wrap"><div id="pvSlot"></div>${draft.step===0 ? '<button class="toy pill-btn" data-rand="1">🎲 随机一下</button>' : `<div class="pv-name">${esc(draft.name||'新朋友')}</div>`}</div>
       <div id="edOpts"></div>
     </div>
-    <button class="toy big-go" data-go="1">${editing ? '就这样吧！' : '搬进小岛！'}</button>`, editorClick);
+    <div class="mii-nav">${draft.step>0 ? '<button class="toy pill-btn" data-prev="1">◀ 上一步</button>' : '<span></span>'}
+      ${last ? `<button class="toy big-go" data-go="1">${editing ? '就这样吧！' : '搬进小岛！'}</button>` : '<button class="toy big-go" data-next="1">下一步 ▶</button>'}</div></div>`, editorClick);
   editorOpen = true; setupPreview(); renderEdOpts();
 }
 function voiceChips(){
@@ -2544,38 +2702,66 @@ function voiceChips(){
   if(list.length < 2) return '';
   return `<div class="sw-row" style="margin-top:8px"><button class="chip ${!draft.voice.name?'on':''}" data-vname="">自动</button>${list.slice(0,10).map((v,i)=>`<button class="chip ${draft.voice.name===v.name?'on':''}" data-vname="${esc(v.name)}">${esc(voiceLabel(v,i))}</button>`).join('')}</div>`;
 }
-const ED_TABS = [['basic','基本'],['face','脸'],['hair','发型'],['body','身材'],['voice','声音'],['paint','彩绘']];
 function renderEdOpts(){
-  const L = draft.look, tab = draft.tab || 'basic';
+  const L = draft.look, girl = draft.voice.g==='f';
   const sw = (key, arr) => arr.map(c=>`<button class="sw ${L[key]===c?'on':''}" style="background:${c}" data-k="${key}" data-v="${c}" aria-label="${c}"></button>`).join('');
-  const chips = (key, arr, def) => arr.map(o=>`<button class="chip ${(L[key]||def)===o.id?'on':''}" data-k="${key}" data-v="${o.id}">${o.n}</button>`).join('');
-  const opt = (label, inner) => `<div class="opt"><span class="lb">${label}</span><div class="sw-row">${inner}</div></div>`;
-  const slider = (id, l, r, v) => `<div class="trait"><span>${l}</span><input type="range" min="0" max="8" step="1" id="${id}" value="${v}" aria-label="${l}到${r}"><span>${r}</span></div>`;
-  let h = `<div class="tabs ed-tabs">${ED_TABS.map(([k,n])=>`<button class="toy tab ${k===tab?'on':''}" data-etab="${k}">${n}</button>`).join('')}</div>`;
-  if(tab==='basic') h += `
-    <div class="opt"><label for="nameInput">名字</label><div class="name-row"><input id="nameInput" maxlength="6" value="${esc(draft.name)}" autocomplete="off"></div></div>
-    ${opt('性别', `<button class="chip ${draft.voice.g==='f'?'on':''}" data-gender="f">女生</button><button class="chip ${draft.voice.g==='m'?'on':''}" data-gender="m">男生</button>`)}
-    <div class="opt"><label for="catchInput">口头禅</label><div class="name-row"><input id="catchInput" maxlength="5" value="${esc(draft.catch)}" autocomplete="off"></div></div>
-    <div class="opt"><span class="lb">性格</span>${TRAIT_AXES.map(([k,l,rr])=>slider('tr_'+k, l, rr, draft.traits[k])).join('')}<div class="pers-name" id="persOut">${persName({pers:draft.pers, traits:draft.traits})}</div></div>`;
-  if(tab==='face') h += opt('肤色', sw('skin',SKINS)) + opt('眼睛', chips('eyes',EYES,'round')) + opt('瞳色', sw('eyeColor',EYE_COLORS)) + opt('眉毛', chips('brows',BROWS,'normal'))
-    + opt('鼻子', chips('nose',NOSES,'dot')) + opt('嘴巴', chips('mouth',MOUTHS,'smile')) + opt('脸颊', chips('cheek',CHEEKS,'blush')) + opt('胡子', chips('beard',BEARDS,'none'));
-  if(tab==='hair') h += opt('发型', chips('hair',HAIRS,'short')) + opt('发色', sw('hairColor',HAIR_COLORS));
-  if(tab==='body') h += `<div class="opt"><span class="lb">身材</span>${slider('lk_height','矮','高',L.height ?? 4)}${slider('lk_build','瘦','壮',L.build ?? 4)}</div>` + opt('衣服颜色', sw('shirt',SHIRTS)) + opt('衣服图案', chips('pattern',PATTERNS,'none'));
   const swN = (key, arr) => arr.map(c=>c==='none' ? `<button class="chip ${(L[key]||'none')==='none'?'on':''}" data-k="${key}" data-v="none">无</button>` : `<button class="sw ${L[key]===c?'on':''}" style="background:${c}" data-k="${key}" data-v="${c}" aria-label="${c}"></button>`).join('');
-  if(tab==='paint') h += opt('彩绘', chips('paint',PAINTS,'none')) + opt('彩绘颜色', sw('paintColor',PAINT_COLORS)) + opt('眼影', swN('shadow',SHADOWS)) + opt('口红', swN('lip',LIPS));
-  if(tab==='voice') h += `<div class="opt"><span class="lb">声音</span><div class="voice-row"><label>低<input type="range" id="pitchIn" min="0.5" max="2" step="0.1" value="${draft.voice.pitch}">高</label><label>慢<input type="range" id="rateIn" min="0.6" max="1.5" step="0.1" value="${draft.voice.rate}">快</label><button class="toy pill-btn" data-try="1">🔈 试听</button></div>${voiceChips()}</div>`;
+  const opt = (label, inner) => `<div class="opt"><span class="lb">${label}</span><div class="sw-row">${inner}</div></div>`;
+  const grid = (key, list, def, img) => `<div class="thumbs">${list.map(o=>`<button class="th ${(L[key]||def)===o.id?'on':''}" data-k="${key}" data-v="${o.id}" aria-label="${o.n}" title="${o.n}">${img(o) ? `<img src="${img(o)}" alt="">` : `<i>${o.n}</i>`}<span>${o.n}</span></button>`).join('')}</div>`;
+  const adj = cat => ADJ_UI[cat] ? `<div class="adj-grid">${ADJ_UI[cat].map(([k,n,up,dn])=>`<div class="adj"><span>${n}</span><button class="toy" data-adj="${k}" data-d="-1" aria-label="${n}减">${dn}</button><b>${av(L,k)}</b><button class="toy" data-adj="${k}" data-d="1" aria-label="${n}加">${up}</button></div>`).join('')}<button class="toy pill-btn" data-adjreset="${cat}">复位</button></div>` : '';
+  const slider = (id, l, r, v) => `<div class="trait"><span>${l}</span><input type="range" min="0" max="8" step="1" id="${id}" value="${v}" aria-label="${l}到${r}"><span>${r}</span></div>`;
+  // part variants used for thumbnails: hide the other parts so each picture shows only the part being chosen
+  const only = over => Object.assign({}, L, {paint:'none', shadow:'none', cheek:'none'}, over);
+  let h = '';
+  if(draft.step===0){
+    const cat = draft.cat;
+    h += `<div class="mii-cats">${ED_CATS.map(([k,e,n])=>`<button class="toy cat ${k===cat?'on':''}" data-cat="${k}"><span>${e}</span>${n}</button>`).join('')}</div><div class="mii-panel">`;
+    if(cat==='shape') h += grid('face', FACE_SHAPES, 'round', f=>shapeThumb(L,f)) + opt('肤色', sw('skin',SKINS)) + opt('脸颊', '') + grid('cheek', CHEEKS, 'blush', o=>faceThumb(Object.assign(only({cheek:o.id}), {eyes:'none', brows:'none', nose:'none'}), girl, .2, -.1, .5));
+    if(cat==='hair') h += grid('hair', HAIRS, 'short', o=>hairThumb(L,o.id)) + opt('发色', sw('hairColor',HAIR_COLORS));
+    if(cat==='brows') h += grid('brows', BROWS, 'normal', o=>faceThumb(only({brows:o.id, eyes:'none', nose:'none'}), girl, 0, .2, .7)) + adj('brows');
+    if(cat==='eyes') h += grid('eyes', EYES, 'round', o=>faceThumb(only({eyes:o.id, brows:'none', nose:'none'}), girl, 0, .05, .82)) + opt('瞳色', sw('eyeColor',EYE_COLORS)) + adj('eyes');
+    if(cat==='nose') h += grid('nose', NOSES, 'dot', o=>faceThumb(only({nose:o.id, eyes:'none', brows:'none'}), girl, 0, -.06, .3)) + adj('nose');
+    if(cat==='mouth') h += grid('mouth', MOUTHS, 'smile', o=>mouthThumb(Object.assign({}, L, {mouth:o.id}))) + opt('口红', swN('lip',LIPS)) + adj('mouth');
+    if(cat==='beard') h += girl ? `<div class="empty">女生没有胡子哦。</div>` : `<div class="sw-row">${BEARDS.map(o=>`<button class="chip ${(L.beard||'none')===o.id?'on':''}" data-k="beard" data-v="${o.id}">${o.n}</button>`).join('')}</div><p class="mii-tip">胡子颜色跟着发色走。</p>`;
+    if(cat==='glasses') h += grid('glasses', GLASSES, 'none', o=>glassThumb(L,o.id)) + opt('镜框颜色', sw('glassesColor',GLASS_COLORS));
+    if(cat==='paint') h += grid('paint', PAINTS, 'none', o=>faceThumb(Object.assign({}, L, {paint:o.id}), girl, 0, 0, 1.05)) + opt('彩绘颜色', sw('paintColor',PAINT_COLORS)) + opt('眼影', swN('shadow',SHADOWS));
+    if(cat==='body') h += `<div class="opt"><span class="lb">身材</span>${slider('lk_height','矮','高',L.height ?? 4)}${slider('lk_build','瘦','壮',L.build ?? 4)}</div>`;
+    if(cat==='cloth') h += opt('衣服颜色', sw('shirt',SHIRTS)) + `<div class="opt"><span class="lb">图案</span></div>` + grid('pattern', PATTERNS, 'none', o=>patThumb(L.shirt, o.id));
+    h += `</div>`;
+  }
+  if(draft.step===1) h += `
+    <div class="opt"><label for="nameInput">名字</label><div class="name-row"><input id="nameInput" maxlength="6" value="${esc(draft.name)}" autocomplete="off"></div></div>
+    <div class="opt"><label for="nickInput">昵称（大家怎么叫${girl?'她':'他'}）</label><div class="name-row"><input class="text-in" id="nickInput" maxlength="5" value="${esc(draft.nick||'')}" placeholder="可以不填" autocomplete="off"></div></div>
+    ${opt('性别', `<button class="chip ${girl?'on':''}" data-gender="f">👧 女生</button><button class="chip ${!girl?'on':''}" data-gender="m">👦 男生</button>`)}
+    ${opt('生日（小岛上一年 '+YEAR+' 天）', Array.from({length:YEAR},(_,i)=>`<button class="chip ${draft.bday===i+1?'on':''}" data-bday="${i+1}">第${i+1}天</button>`).join(''))}
+    ${opt('最喜欢的颜色', sw('shirt',SHIRTS))}
+    <div class="opt"><label for="catchInput">口头禅</label><div class="name-row"><input id="catchInput" maxlength="5" value="${esc(draft.catch)}" autocomplete="off"></div></div>`;
+  if(draft.step===2) h += `<div class="opt"><span class="lb">声音</span><div class="voice-row voice-big"><label>低<input type="range" id="pitchIn" min="0.5" max="2" step="0.1" value="${draft.voice.pitch}">高</label><label>慢<input type="range" id="rateIn" min="0.6" max="1.5" step="0.1" value="${draft.voice.rate}">快</label></div></div>
+    <div class="opt"><span class="lb">音色</span>${voiceChips() || '<div class="mii-tip">这台设备上只有一种这个性别的声音，可以用上面的滑杆调高低快慢。</div>'}</div>
+    <div class="opt"><span class="lb">试着说说看</span><div class="sw-row">${SAY_TESTS.map(([e,t],i)=>`<button class="toy pill-btn" data-say="${i}">${e} ${t}</button>`).join('')}</div></div>`;
+  if(draft.step===3) h += `<div class="opt"><span class="lb">性格</span>${TRAIT_AXES.map(([k,l,rr])=>slider('tr_'+k, l, rr, draft.traits[k])).join('')}</div>
+    <div class="pers-card"><div class="pers-name" id="persOut">${persName({pers:draft.pers, traits:draft.traits})}</div><div class="mii-tip" id="persTalk">“${esc(TALK_SUB[draft.pers][persSub(draft.traits)])}”</div></div>`;
   $('#edOpts').innerHTML = h;
 }
 function editorClick(b, e){
+    if(draft && draft.isPet) return petEdClick(b, e);
     if(!b){ const id = e.target.id;
-      if(id==='nameInput') draft.name = e.target.value;
+      if(id==='nameInput'){ draft.name = e.target.value; }
+      if(id==='nickInput') draft.nick = e.target.value;
       if(id==='catchInput') draft.catch = e.target.value;
       if(id==='pitchIn') draft.voice.pitch = +e.target.value;
       if(id==='rateIn') draft.voice.rate = +e.target.value;
       if(id==='lk_height' || id==='lk_build'){ draft.look[id.slice(3)] = +e.target.value; setupPreview(); }
-      if(id.startsWith('tr_')){ draft.traits[id.slice(3)] = +e.target.value; draft.pers = persFromTraits(draft.traits); const po = $('#persOut'); if(po) po.textContent = persName({pers:draft.pers, traits:draft.traits}); }
+      if(id.startsWith('tr_')){ draft.traits[id.slice(3)] = +e.target.value; draft.pers = persFromTraits(draft.traits); const po = $('#persOut'); if(po) po.textContent = persName({pers:draft.pers, traits:draft.traits}); const pt = $('#persTalk'); if(pt) pt.textContent = `“${TALK_SUB[draft.pers][persSub(draft.traits)]}”`; }
       return; }
-    if(b.dataset.etab){ draft.tab = b.dataset.etab; sfx.pop(); renderEdOpts(); return; }
+    if(b.dataset.step){ draft.step = +b.dataset.step; sfx.pop(); renderEditor(); return; }
+    if(b.dataset.next){ draft.step = Math.min(ED_STEPS.length-1, draft.step+1); sfx.pop(); renderEditor(); if(draft.step===2) speakWith(draft.voice, `我是${draft.name||'新朋友'}，${draft.catch||''}`); return; }
+    if(b.dataset.prev){ draft.step = Math.max(0, draft.step-1); sfx.pop(); renderEditor(); return; }
+    if(b.dataset.cat){ draft.cat = b.dataset.cat; sfx.pop(); renderEdOpts(); return; }
+    if(b.dataset.adj){ const k = b.dataset.adj, mx = ADJ_MAX[k] || 4; draft.look[k] = clamp(av(draft.look,k) + +b.dataset.d, -mx, mx); sfx.pop(); renderEdOpts(); setupPreview(); return; }
+    if(b.dataset.adjreset){ (ADJ_UI[b.dataset.adjreset]||[]).forEach(([k])=>delete draft.look[k]); sfx.pop(); renderEdOpts(); setupPreview(); return; }
+    if(b.dataset.bday){ draft.bday = +b.dataset.bday; sfx.pop(); renderEdOpts(); return; }
+    if(b.dataset.say){ const [,t] = SAY_TESTS[+b.dataset.say], v = Object.assign({}, draft.voice); if(+b.dataset.say===2) v.pitch *= .92; if(+b.dataset.say===1 || +b.dataset.say===5) v.pitch *= 1.08; speakWith(v, t + '，' + (draft.catch||'')); return; }
     if(b.dataset.gender){
       const g = b.dataset.gender, v = draft.voice; v.g = g; v.name = null;
       if(g==='f' && v.pitch < 1.05) v.pitch = Math.round(rand(1.1,1.5)*10)/10;
@@ -2584,10 +2770,10 @@ function editorClick(b, e){
       renderEdOpts(); setupPreview(); speakWith(v, `我是${draft.name||'新朋友'}，${draft.catch||''}`); return;
     }
     if(b.dataset.vname !== undefined){ draft.voice.name = b.dataset.vname || null; renderEdOpts(); speakWith(draft.voice, `我是${draft.name||'新朋友'}，${draft.catch||''}`); return; }
-    if(b.dataset.try){ speakWith(draft.voice, `我是${draft.name||'新朋友'}，${pick(TALK[draft.pers])}，${draft.catch||''}`); return; }
     if(b.dataset.go && editing){
       const r = editing, d = r.d; editing = null;
-      d.name = ((draft.name||'').trim() || d.name).slice(0,6); d.look = draft.look; d.pers = draft.pers; d.traits = draft.traits; r.speed = 1.7 + d.traits.move*.14; d.catch = (draft.catch||'').trim().slice(0,5) || d.catch; d.voice = draft.voice;
+      d.name = ((draft.name||'').trim() || d.name).slice(0,6); d.nick = (draft.nick||'').trim().slice(0,5) || null; d.bday = draft.bday || d.bday;
+      d.look = draft.look; d.pers = draft.pers; d.traits = draft.traits; r.speed = 1.7 + d.traits.move*.14; d.catch = (draft.catch||'').trim().slice(0,5) || d.catch; d.voice = draft.voice;
       closeModal(); rebuildChar(r); buildHouse(r); fixCouples(); save(); sfx.happy();
       toast(`${d.name} 换了新造型！`, 'gold'); cam.goal.copy(r.p.root.position);
       if(r.state!=='home') beHappy(r,'✨',1.8);
@@ -2597,13 +2783,15 @@ function editorClick(b, e){
     if(b.dataset.go){
       const name = (draft.name||'').trim() || '新朋友';
       const d = makeResData(name.slice(0,6), draft.look, draft.pers, draft.slot); d.traits = draft.traits; d.catch = (draft.catch||'').trim().slice(0,5) || pick(CATCHES); d.voice = draft.voice;
+      d.bday = draft.bday || d.bday; d.nick = (draft.nick||'').trim().slice(0,5) || null;
       closeModal(); const r = addResident(d, true);
       save(); sfx.happy(); toast(`欢迎 ${d.name} 搬进心心小岛！`, 'gold'); logNews(`🏠 ${d.name} 搬进了小岛`);
       cam.goal.copy(r.p.root.position); confetti(scene, r.p.root.position); if(!isNight()) beHappy(r,'👋',2);
+      r.say = `你好，我是${d.name}！${d.catch}`; r.spoken = r.say; speakWith(d.voice, r.say);
       checkExpand();
       return;
     }
-    if(b.dataset.rand){ draft.look = newLook(draft.voice.g); draft.traits = {move:ri(0,8), talk:ri(0,8), social:ri(0,8), mind:ri(0,8)}; draft.pers = persFromTraits(draft.traits); draft.catch = pick(CATCHES); }
+    if(b.dataset.rand){ const keep = {}; draft.look = newLook(draft.voice.g); draft.traits = {move:ri(0,8), talk:ri(0,8), social:ri(0,8), mind:ri(0,8)}; draft.pers = persFromTraits(draft.traits); draft.catch = pick(CATCHES); }
     else if(b.dataset.k){ draft.look[b.dataset.k] = b.dataset.v; }
     sfx.pop(); renderEdOpts(); setupPreview();
 }
@@ -2617,7 +2805,9 @@ function setupPreview(){
   const slot = document.getElementById('pvSlot'); if(slot && pvRenderer.domElement.parentNode !== slot) slot.appendChild(pvRenderer.domElement);
   const ry = pvModel ? pvModel.rotation.y : 0;
   if(pvModel) pvScene.remove(pvModel);
-  const pvp = buildChar(draft.look, null, draft.outfit, draft.voice); pvModel = pvp.root; pvHead = pvp.head; pvModel.rotation.y = ry; pvScene.add(pvModel);
+  if(draft.isPet){ const pp = buildPet(draft.pet); pvModel = pp.root; pvHead = null; }
+  else { const pvp = buildChar(draft.look, null, draft.outfit, draft.voice); pvModel = pvp.root; pvHead = pvp.head; }
+  pvModel.rotation.y = ry; pvScene.add(pvModel);
 }
 
 /* ---------------- room mode ---------------- */
@@ -2761,6 +2951,7 @@ function placeRoomCam(){
 
 /* ---------------- dock ---------------- */
 $('#bNew').onclick = ()=>openEditor();
+$('#bPets').onclick = ()=>openPets();
 $('#bShop').onclick = ()=>{ sfx.pop(); openShop(); };
 $('#bFriends').onclick = ()=>{ sfx.pop(); openFriends(false); };
 $('#newsBtn').onclick = ()=>{ sfx.pop(); openNews(); };
@@ -2793,9 +2984,231 @@ function onResize(){
 }
 addEventListener('resize', onResize);
 
+/* ---------------- pets ---------------- */
+const PET_KINDS = {dog:{n:'小狗',e:'🐶'}, cat:{n:'小猫',e:'🐱'}, rabbit:{n:'小兔',e:'🐰'}, hamster:{n:'仓鼠',e:'🐹'}, bird:{n:'小鸟',e:'🐤'}};
+const PET_COLORS = ['#FFFFFF','#F3E3C8','#F2C57C','#E8A85A','#C98B62','#8A5A3C','#5A4A4A','#2F2B35','#C9C9D6','#FFB3C8','#9FD8FF','#FFE066'];
+const PET_PATS = [{id:'none',n:'纯色'},{id:'spots',n:'斑点'},{id:'patch',n:'花斑'},{id:'stripe',n:'条纹'},{id:'socks',n:'白袜子'}];
+const PET_EARS = [{id:'up',n:'立耳'},{id:'floppy',n:'垂耳'}];
+const PET_EYES = [{id:'round',n:'圆圆眼'},{id:'big',n:'亮晶晶'},{id:'smile',n:'眯眯眼'}];
+const COLLARS = ['#FF5E6E','#4DA3FF','#FFD23F','#5CC9A7','#B48CFF','#FF9F1C','#FFFFFF'];
+const PET_NAMES = ['旺财','咪咪','豆包','团团','小白','奶茶','球球','饼干','花卷','年糕','芝麻','可乐','汤圆','雪球'];
+const PET_MAX = 8;
+const PET_TALK = {dog:['汪汪！','汪！'], cat:['喵～','喵呜'], rabbit:['噗噗','嗯嗯'], hamster:['吱吱','吱～'], bird:['啾啾','啾！']};
+let pets = [];
+function newPetData(owner, kind){
+  kind = kind || pick(Object.keys(PET_KINDS));
+  const used = new Set((S.pets||[]).map(p=>p.name));
+  return {id:'p'+Date.now().toString(36)+ri(0,999), name:pick(PET_NAMES.filter(n=>!used.has(n)).concat(['小宝'])), kind, color:pick(PET_COLORS), color2:pick(PET_COLORS), pattern:pick(['none','none','spots','patch','socks','stripe']), ears:pick(['up','floppy']), eyes:pick(['round','round','big','smile']), collar:pick(COLLARS), owner:owner||null, mood:80, size:4};
+}
+function petSound(kind){
+  if(kind==='dog'){ tone(520,.09,'square',.05,0,.7); tone(470,.11,'square',.05,.16,.7); }
+  else if(kind==='cat'){ tone(640,.38,'triangle',.07,0,1.35); tone(900,.2,'sine',.02,.18,.8); }
+  else if(kind==='rabbit'){ [0,.08,.16].forEach(w=>noise(.04,.05,w,2600)); }
+  else if(kind==='hamster'){ tone(1900,.06,'sine',.05,0,1.2); tone(2100,.06,'sine',.05,.09,1.2); }
+  else { [0,.1,.2].forEach((w,i)=>tone(2200+i*300,.07,'sine',.05,w,1.4)); }
+}
+function buildPet(pd){
+  const root = new T.Group(), rig = new T.Group(); root.add(rig);
+  const K = pd.kind, fur = M(pd.color), fur2 = M(pd.color2 || '#FFFFFF'), dark = M('#2A1F2E'), white = B('#FFFFFF'), pink = M('#FF9AAE');
+  const light = M(mixHex(pd.color, '#FFFFFF', .55));
+  const bird = K==='bird', ham = K==='hamster';
+  const legs = [];
+  let body, headY, headZ, headR;
+  if(bird){
+    body = mesh(G.sph(.26,20,14), fur, 0,.42,0); body.scale.set(1,1.05,1.1); rig.add(body);
+    rig.add(mesh(G.sph(.2,16,12), light, 0,.36,.12));
+    headY = .76; headZ = .1; headR = .19;
+    [-1,1].forEach(s=>{ const w = mesh(G.sph(.16,12,10), fur2, s*.24,.45,-.02); w.scale.set(.35,.8,1.2); w.rotation.z = s*.25; rig.add(w); legs.push(w);
+      const lg = mesh(G.cyl(.018,.018,.2,5), M('#FF9F1C'), s*.08,.12,.04); rig.add(lg); rig.add(mesh(G.box(.08,.02,.1), M('#FF9F1C'), s*.08,.02,.08)); });
+    const tail = new T.Group(); tail.position.set(0,.42,-.26); const tf = mesh(G.cone(.14,.3,8), fur2, 0,0,-.12); tf.rotation.x = -Math.PI/2 - .5; tf.scale.set(1,1,.3); tail.add(tf); rig.add(tail);
+    var tailG = tail;
+  } else {
+    const bw = ham ? 1.15 : 1, bl = ham ? 1.1 : K==='rabbit' ? 1.15 : 1.35, bh = ham ? .95 : .85, by = ham ? .3 : .4;
+    body = mesh(G.sph(.28,20,14), fur, 0,by,0); body.scale.set(bw,bh,bl); rig.add(body);
+    { const belly = mesh(G.sph(.22,16,12), light, 0,by-.04,.12*bl); belly.scale.set(bw*.9,.8,1); rig.add(belly); }
+    headY = ham ? .5 : K==='rabbit' ? .7 : .68; headZ = ham ? .2 : .36; headR = ham ? .2 : .24;
+    const legH = ham ? .08 : .24, legC = pd.pattern==='socks' ? M('#FFFFFF') : fur;
+    [[-1,1],[1,1],[-1,-1],[1,-1]].forEach(([sx,sz])=>{
+      const lg = new T.Group(); lg.position.set(sx*.14*bw, legH+.02, sz*.19*bl*(ham?.8:1)); lg.add(mesh(G.cyl(.065,.06,legH,8), legC, 0,-legH/2,0)); const paw = mesh(G.sph(.07,10,8), legC, 0,-legH,.02); paw.scale.set(1,.6,1.2); lg.add(paw); rig.add(lg); legs.push(lg);
+    });
+    // tail
+    const tail = new T.Group(); tail.position.set(0, by+.08, -.3*bl); rig.add(tail);
+    if(K==='dog'){ const t = mesh(G.cone(.07,.34,8), fur, 0,.15,-.02); t.rotation.x = -.5; tail.add(t); }
+    if(K==='cat'){ const curve = new T.CatmullRomCurve3([new T.Vector3(0,0,0), new T.Vector3(0,.18,-.15), new T.Vector3(0,.42,-.12), new T.Vector3(0,.55,.02)]); tail.add(new T.Mesh(new T.TubeGeometry(curve, 16, .045, 8, false), pd.pattern==='stripe' ? fur2 : fur)); }
+    if(K==='rabbit') tail.add(mesh(G.sph(.1,10,8), M('#FFFFFF'), 0,0,-.02));
+    if(ham) tail.add(mesh(G.sph(.04,6,5), fur, 0,-.05,0));
+    var tailG = tail;
+    // coat patterns
+    if(pd.pattern==='spots') [[.14,.12,.1],[-.12,.08,-.12],[.05,.2,-.25],[-.18,-.02,.15],[.2,-.05,-.1]].forEach(([x,y,z],i)=>{ const d = new T.Vector3(x,y+.1,z).normalize(); const sp = mesh(G.sph(.07 - i*.006,10,8), fur2, d.x*.28*bw, by + d.y*.28*bh, d.z*.28*bl); sp.scale.set(1,.5,1); sp.lookAt(sp.position.clone().multiplyScalar(2).setY(sp.position.y*2 - by)); rig.add(sp); });
+    if(pd.pattern==='patch'){ const pc = mesh(G.sph(.2,14,10), fur2, .06, by+.1, -.08); pc.scale.set(1.2*bw,.8,1.3*bl); rig.add(pc); }
+    if(pd.pattern==='stripe') for(let i=0;i<3;i++){ const st = new T.Mesh(new T.TorusGeometry(.27,.025,6,20,Math.PI), fur2); st.position.set(0, by, (-.12 + i*.13)*bl); st.scale.set(bw*1.02, bh*1.08, 1); rig.add(st); }
+  }
+  // head
+  const head = new T.Group(); head.position.set(0, headY, headZ); rig.add(head);
+  head.add(mesh(G.sph(headR,22,16), fur));
+  if(!bird && !ham){ const mz = mesh(G.sph(headR*.55,14,10), K==='dog' ? light : M(mixHex(pd.color,'#FFFFFF',.35)), 0,-headR*.3,headR*.72); mz.scale.set(1.15,.8,.8); head.add(mz); }
+  if(ham) [-1,1].forEach(s=>{ const ck = mesh(G.sph(headR*.45,12,10), light, s*headR*.55,-headR*.25,headR*.45); head.add(ck); });
+  if(pd.pattern==='patch' && !bird){ const ep = mesh(G.sph(headR*.45,12,10), fur2, headR*.4, headR*.25, headR*.6); ep.scale.set(1,1,.5); head.add(ep); }
+  // ears
+  const ear = (geo, mat, x,y,z, rx=0, rz=0, sc) => { const e = mesh(geo, mat, x,y,z); e.rotation.set(rx,0,rz); if(sc) e.scale.set(...sc); head.add(e); return e; };
+  if(K==='dog'){
+    if(pd.ears==='floppy') [-1,1].forEach(s=>ear(G.sph(.11,12,10), fur2===fur ? fur : M(shade(pd.color,.8)), s*headR*.95, headR*.15, 0, 0, s*.35, [.45,1.1,.8]));
+    else [-1,1].forEach(s=>{ ear(G.cone(.08,.2,10), fur, s*headR*.55, headR*.95, -.02, 0, s*-.25); ear(G.cone(.045,.12,8), pink, s*headR*.55, headR*.93, .02, 0, s*-.25); });
+  }
+  if(K==='cat') [-1,1].forEach(s=>{ ear(G.cone(.085,.17,4), fur, s*headR*.6, headR*.92, 0, 0, s*-.3); ear(G.cone(.05,.1,4), pink, s*headR*.6, headR*.9, .03, 0, s*-.3); });
+  if(K==='rabbit') [-1,1].forEach(s=>{ const up = pd.ears!=='floppy'; ear(G.sph(.1,12,10), fur, s*headR*.4, up ? headR*1.55 : headR*.9, up ? -.02 : -.05, up ? -.15 : 0, up ? s*-.12 : s*1.2, [.42,1.6,.3]); ear(G.sph(.06,10,8), pink, s*headR*.4, up ? headR*1.55 : headR*.9, up ? .01 : -.02, up ? -.15 : 0, up ? s*-.12 : s*1.2, [.4,1.5,.2]); });
+  if(ham) [-1,1].forEach(s=>{ ear(G.sph(.06,10,8), fur, s*headR*.7, headR*.8, 0, 0, 0, [1,1,.5]); ear(G.sph(.035,8,6), pink, s*headR*.7, headR*.8, .02, 0, 0, [1,1,.4]); });
+  if(bird){ const bk = mesh(G.cone(.05,.13,8), M('#FF9F1C'), 0,-.02,headR+.04); bk.rotation.x = Math.PI/2; head.add(bk); [0,1,2].forEach(i=>{ const f = mesh(G.sph(.04,8,6), fur2, 0, headR*.95 + i*.03, -.03 - i*.05); f.scale.set(.5,1.2,1); head.add(f); }); }
+  // face
+  const eyeZ = headR*.86, eyeX = headR*.42, eyeY = bird ? headR*.2 : headR*.18;
+  [-1,1].forEach(s=>{
+    if(pd.eyes==='smile'){ const e = new T.Mesh(new T.TorusGeometry(.035,.012,6,12,Math.PI), dark); e.position.set(s*eyeX, eyeY, eyeZ); head.add(e); return; }
+    const big = pd.eyes==='big', er = big ? .055 : .042;
+    const e = mesh(G.sph(er,12,10), dark, s*eyeX, eyeY, eyeZ - .01, false); e.scale.set(1, big ? 1.25 : 1.1, .6); head.add(e);
+    head.add(mesh(G.sph(er*.35,6,5), white, s*eyeX + .012, eyeY + er*.4, eyeZ + .015, false));
+    if(big) head.add(mesh(G.sph(er*.18,6,4), white, s*eyeX - .012, eyeY - er*.35, eyeZ + .015, false));
+  });
+  if(!bird){ const ns = mesh(G.sph(K==='dog' ? .045 : .03,10,8), K==='cat' || K==='rabbit' || ham ? pink : dark, 0, -headR*.12, headR*(ham ? .98 : 1.08), false); ns.scale.set(1.2,.8,.8); head.add(ns); }
+  if(K==='cat' || ham) [-1,1].forEach(s=>[-1,1].forEach(k=>{ const w = mesh(G.box(.16,.006,.006), dark, s*headR*.62, -headR*.18 + k*.025, headR*.8, false); w.rotation.z = s*k*.12; head.add(w); }));
+  [-1,1].forEach(s=>{ const bl = mesh(G.sph(.04,8,6), pink, s*headR*.62, -headR*.12, headR*.72, false); bl.scale.set(1,.55,.4); head.add(bl); });
+  // collar with a little bell
+  if(!bird){ const cl = new T.Mesh(new T.TorusGeometry(headR*.78,.028,8,24), M(pd.collar)); cl.position.set(0, headY - headR*.78, headZ - .06); cl.rotation.x = Math.PI/2 - .35; rig.add(cl); rig.add(mesh(G.sph(.04,10,8), M('#FFD23F'), 0, headY - headR*.95, headZ + headR*.62)); }
+  else { const cl = new T.Mesh(new T.TorusGeometry(.14,.022,8,20), M(pd.collar)); cl.position.set(0,.6,.08); cl.rotation.x = Math.PI/2; rig.add(cl); }
+  const hit = new T.Mesh(G.cyl(.55,.55,1.1,8), new T.MeshBasicMaterial({transparent:true, opacity:0, depthWrite:false})); hit.position.y = .5; root.add(hit);
+  root.traverse(o=>{ if(o.isMesh && o!==hit) o.castShadow = true; });
+  const sc = .8 + (pd.size ?? 4)*.05; rig.scale.setScalar(sc);
+  return {root, rig, head, tail:tailG, legs, hit};
+}
+function petHome(pw){ const o = pw.d.owner && byId(pw.d.owner); return o ? doorPoint(o.d.slot) : new T.Vector3(rand(-4,4),0,rand(3,6)); }
+function makePetModel(pw){
+  const p = buildPet(pw.d); pw.p = p;
+  const label = sprite(labelTex(pw.d.name), 1.1, .31); label.position.y = 1.35; p.root.add(label);
+  p.root.scale.setScalar(1.25); p.hit.userData.pick = {type:'pet', pw}; scene.add(p.root);
+}
+function addPet(pd){
+  const pw = {d:pd, p:null, state:'idle', timer:rand(.5,2), dest:null, happyT:0};
+  makePetModel(pw);
+  const h = petHome(pw); pw.p.root.position.set(h.x + rand(-1,1), 0, h.z + rand(-1,1));
+  pets.push(pw); return pw;
+}
+function rebuildPet(pw){ const old = pw.p.root; scene.remove(old); makePetModel(pw); pw.p.root.position.copy(old.position); pw.p.root.rotation.y = old.rotation.y; return pw; }
+function updatePet(pw, dt, t){
+  const root = pw.p.root, pos = root.position, o = pw.d.owner && byId(pw.d.owner);
+  const asleep = isNight() && (!o || o.state==='home');
+  root.visible = !asleep; if(asleep) return;
+  pw.timer -= dt;
+  let goal = null, speed = 1.3;
+  if(pw.happyT > 0){ pw.happyT -= dt; pw.p.rig.position.y = Math.abs(Math.sin(t*9))*.25; pw.p.rig.rotation.y += dt*6; pw.p.tail.rotation.z = Math.sin(t*20)*.8; return; }
+  pw.p.rig.rotation.y = 0;
+  if(o && o.p.root.visible && o.state!=='home' && !inEvent(o)){
+    const op = o.p.root.position, d = Math.hypot(op.x-pos.x, op.z-pos.z);
+    if(d > 1.8){ goal = op; speed = Math.max(2.2, (o.speed||2)*1.1); pw.state = 'follow'; }
+    else if(pw.state==='follow'){ pw.state = 'idle'; pw.timer = rand(1,3); }
+    if(!goal && pw.state==='idle') turnTo(root, angleTo(pos, op), dt*4);
+  }
+  if(!goal){
+    if(pw.state==='walk' && pw.dest) goal = pw.dest;
+    else if(pw.timer <= 0){ const h = o ? o.p.root.position : petHome(pw); pw.dest = new T.Vector3(h.x + rand(-2.5,2.5), 0, h.z + rand(-2.5,2.5)); pw.state = 'walk'; pw.timer = rand(3,6); }
+  }
+  let moving = false;
+  if(goal){
+    const dx = goal.x-pos.x, dz = goal.z-pos.z, dist = Math.hypot(dx,dz), stop = pw.state==='follow' ? 1.3 : .15;
+    if(dist > stop){ const step = Math.min(dist-stop+.01, speed*dt); pos.x += dx/dist*step; pos.z += dz/dist*step; avoidObstacles(pos, goal, step); turnTo(root, Math.atan2(dx,dz), dt*8); moving = true; }
+    else if(pw.state==='walk'){ pw.state = 'idle'; pw.dest = null; pw.timer = rand(2,5); }
+  }
+  const K = pw.d.kind;
+  if(moving){
+    if(K==='rabbit' || K==='bird'){ pw.p.rig.position.y = Math.abs(Math.sin(t*9))*.14; }
+    else { pw.p.rig.position.y = Math.abs(Math.sin(t*12))*.03; pw.p.legs.forEach((l,i)=>l.rotation.x = Math.sin(t*14 + (i%3===0 ? 0 : Math.PI))*.6); }
+  } else { pw.p.rig.position.y = 0; pw.p.legs.forEach(l=>{ if(l.isGroup) l.rotation.x = 0; }); }
+  if(K==='bird') pw.p.legs.forEach((w,i)=>{ if(w.isMesh) w.rotation.z = (i?-1:1)*(.25 + (moving ? Math.abs(Math.sin(t*18))*.6 : 0)); });
+  pw.p.tail.rotation.y = K==='dog' ? Math.sin(t*(pw.d.mood > 50 ? 16 : 6))*.6 : Math.sin(t*2)*.25;
+  pw.p.head.rotation.z = Math.sin(t*1.5 + pw.d.id.length)*.08;
+}
+function petMoodTick(){ pets.forEach(pw=>{ pw.d.mood = clamp((pw.d.mood ?? 80) - 1, 0, 100); }); }
+
+// pet sheet
+let petSel = null;
+function openPetSheet(pw){
+  petSel = pw; const d = pw.d, o = d.owner && byId(d.owner), K = PET_KINDS[d.kind];
+  if(selected) closeSheet();
+  cam.goal.copy(pw.p.root.position);
+  const others = residents.filter(r=>!r.d.kid);
+  openModal(`<div class="modal-head"><h2>${K.e} ${esc(d.name)}</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>
+    <div class="tags"><span class="tag">${K.n}</span><span class="tag">${o ? '主人：'+esc(o.d.name) : '还没有主人'}</span></div>
+    <div style="display:flex;align-items:center;gap:10px;margin:12px 0"><span>心情</span><div style="flex:1;height:14px;border:3px solid var(--ink);border-radius:10px;background:#fff;overflow:hidden"><div style="width:${d.mood}%;height:100%;background:#FF7A8A"></div></div><b>${Math.round(d.mood)}</b></div>
+    <div class="grid-items">
+      <button class="toy item" data-pact="pat"><span class="ic">🤚</span>摸摸</button>
+      <button class="toy item" data-pact="treat"><span class="ic">🦴</span>喂零食<span style="font-size:11px;color:var(--ink-soft)">5 金币</span></button>
+      <button class="toy item" data-pact="play"><span class="ic">🎾</span>一起玩</button>
+      <button class="toy item" data-pact="edit"><span class="ic">✂️</span>换造型</button>
+    </div>
+    <div class="opt" style="margin-top:12px"><span class="lb">主人</span><div class="sw-row"><button class="chip ${!o?'on':''}" data-powner="">没有</button>${others.map(r=>`<button class="chip ${o===r?'on':''}" data-powner="${r.d.id}">${esc(r.d.name)}</button>`).join('')}</div></div>`, (b)=>{
+      if(!b) return;
+      if(b.dataset.pact==='pat'){ d.mood = clamp(d.mood+12,0,100); petHappy(pw, '💗'); openPetSheet(pw); }
+      if(b.dataset.pact==='treat'){ if(S.coins < 5){ toast('金币不够啦'); return; } S.coins -= 5; updateCoins(); sfx.munch(); d.mood = clamp(d.mood+25,0,100); petHappy(pw, '🦴'); openPetSheet(pw); }
+      if(b.dataset.pact==='play'){ d.mood = clamp(d.mood+15,0,100); petHappy(pw, '🎾', 2.2); closeModal(); }
+      if(b.dataset.pact==='edit'){ openPetEditor(pw); }
+      if(b.dataset.powner !== undefined){ const nw = b.dataset.powner || null; d.owner = nw; const no = nw && byId(nw); if(no){ toast(`${d.name} 跟着 ${no.d.name} 回家啦`); logNews(`🐾 ${no.d.name} 收养了${K.n}「${d.name}」`); } save(); openPetSheet(pw); }
+    });
+}
+function petHappy(pw, emoji, secs=1.4){ pw.happyT = secs; petSound(pw.d.kind); burst(scene, pw.p.root.position.clone().setY(1.2), emoji, 5, .6); save(); }
+function openPets(){
+  sfx.pop(); if(selected) closeSheet();
+  openModal(`<div class="modal-head"><h2>🐾 宠物</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>
+    ${pets.length ? `<div class="grid-items">${pets.map((pw,i)=>{ const o = pw.d.owner && byId(pw.d.owner); return `<button class="toy item" data-pet="${i}"><span class="ic">${PET_KINDS[pw.d.kind].e}</span>${esc(pw.d.name)}<span style="font-size:11px;color:var(--ink-soft)">${o ? esc(o.d.name)+'家' : '流浪中'}</span></button>`; }).join('')}</div>` : '<div class="empty">岛上还没有宠物，来捏一只吧！</div>'}
+    <button class="toy big-go" data-newpet="1" ${pets.length >= PET_MAX ? 'disabled' : ''}>${pets.length >= PET_MAX ? `宠物已经很多啦（最多 ${PET_MAX} 只）` : '🐾 捏一只新宠物'}</button>`, b=>{
+      if(!b) return;
+      if(b.dataset.pet){ const pw = pets[+b.dataset.pet]; closeModal(); openPetSheet(pw); }
+      if(b.dataset.newpet) openPetEditor();
+    });
+}
+// pet maker (shares the preview renderer with the resident maker)
+let petEditing = null;
+function openPetEditor(pw){
+  petEditing = pw || null;
+  const pd = pw ? Object.assign({}, pw.d) : newPetData(selected ? selected.d.id : null);
+  draft = {isPet:true, pet:pd}; sfx.pop(); renderPetEditor();
+}
+function renderPetEditor(){
+  const P = draft.pet, isNew = !petEditing;
+  openModal(`<div class="mii-wrap"><div class="modal-head"><h2>${isNew ? '捏一只宠物' : '给'+esc(P.name)+'换造型'}</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>
+    <div class="mii"><div class="pv-wrap"><div id="pvSlot"></div><div class="sw-row" style="justify-content:center"><button class="toy pill-btn" data-prand="1">🎲 随机</button><button class="toy pill-btn" data-psound="1">🔈 叫一声</button></div></div><div id="edOpts"></div></div>
+    <button class="toy big-go" data-pgo="1">${isNew ? '就它了！' : '就这样吧！'}</button></div>`, editorClick);
+  editorOpen = true; setupPreview(); renderPetOpts();
+}
+function renderPetOpts(){
+  const P = draft.pet;
+  const sw = (key, arr) => arr.map(c=>`<button class="sw ${P[key]===c?'on':''}" style="background:${c}" data-pk="${key}" data-v="${c}" aria-label="${c}"></button>`).join('');
+  const chips = (key, arr) => arr.map(o=>`<button class="chip ${P[key]===o.id?'on':''}" data-pk="${key}" data-v="${o.id}">${o.n}</button>`).join('');
+  const opt = (label, inner) => `<div class="opt"><span class="lb">${label}</span><div class="sw-row">${inner}</div></div>`;
+  const owners = residents.filter(r=>!r.d.kid);
+  $('#edOpts').innerHTML = `<div class="opt"><label for="petName">名字</label><div class="name-row"><input class="text-in" id="petName" maxlength="5" value="${esc(P.name)}" autocomplete="off"></div></div>`
+    + opt('种类', Object.entries(PET_KINDS).map(([k,v])=>`<button class="chip ${P.kind===k?'on':''}" data-pk="kind" data-v="${k}">${v.e} ${v.n}</button>`).join(''))
+    + opt('毛色', sw('color', PET_COLORS)) + opt('花纹', chips('pattern', PET_PATS)) + opt('花纹颜色', sw('color2', PET_COLORS))
+    + (P.kind==='dog' || P.kind==='rabbit' ? opt('耳朵', chips('ears', PET_EARS)) : '') + opt('眼睛', chips('eyes', PET_EYES)) + opt('项圈', sw('collar', COLLARS))
+    + `<div class="opt"><span class="lb">体型</span><div class="trait"><span>小只</span><input type="range" min="0" max="8" step="1" id="petSize" value="${P.size ?? 4}" aria-label="体型"><span>大只</span></div></div>`
+    + opt('主人', `<button class="chip ${!P.owner?'on':''}" data-pk="owner" data-v="">没有</button>` + owners.map(r=>`<button class="chip ${P.owner===r.d.id?'on':''}" data-pk="owner" data-v="${r.d.id}">${esc(r.d.name)}</button>`).join(''));
+}
+function petEdClick(b, e){
+  const P = draft.pet;
+  if(!b){ if(e.target.id==='petName') P.name = e.target.value; if(e.target.id==='petSize'){ P.size = +e.target.value; setupPreview(); } return; }
+  if(b.dataset.psound){ petSound(P.kind); return; }
+  if(b.dataset.prand){ const keep = {id:P.id, owner:P.owner, name:P.name, mood:P.mood}; draft.pet = Object.assign(newPetData(P.owner), keep); sfx.pop(); renderPetOpts(); setupPreview(); petSound(draft.pet.kind); return; }
+  if(b.dataset.pk){ const k = b.dataset.pk; P[k] = k==='owner' ? (b.dataset.v || null) : b.dataset.v; sfx.pop(); renderPetOpts(); if(k!=='owner') setupPreview(); if(k==='kind') petSound(P.kind); return; }
+  if(b.dataset.pgo){
+    P.name = (P.name||'').trim().slice(0,5) || pick(PET_NAMES);
+    if(!S.pets) S.pets = [];
+    const o = P.owner && byId(P.owner);
+    if(petEditing){ const i = S.pets.findIndex(x=>x.id===P.id); S.pets[i] = P; petEditing.d = P; const n = rebuildPet(petEditing); petEditing = null; closeModal(); petHappy(n, '✨'); toast(`${P.name} 换了新造型！`, 'gold'); }
+    else { S.pets.push(P); closeModal(); const n = addPet(P, true); cam.goal.copy(n.p.root.position); confetti(scene, n.p.root.position); petHappy(n, '💗', 1.8); toast(`${PET_KINDS[P.kind].e} ${P.name} 来到了小岛！`, 'gold'); logNews(o ? `🐾 ${o.d.name} 养了一只${PET_KINDS[P.kind].n}「${P.name}」` : `🐾 小岛来了一只${PET_KINDS[P.kind].n}「${P.name}」`); }
+    save(); return;
+  }
+}
+
 /* ---------------- loop ---------------- */
 const clock = new T.Clock(); let acc = 0, saveT = 0, barT = 0;
-let simT = 0;
+let simT = 0, petT = 0;
 function loop(){
   requestAnimationFrame(loop);
   const dt = Math.min(clock.getDelta(), .05); simT += dt; frame(dt, simT);
@@ -2806,6 +3219,7 @@ function frame(dt, t){
   saveT += dt; if(saveT > 6){ save(); saveT = 0; }
   barT += dt; if(barT > .4){ refreshBars(); barT = 0; }
   residents.forEach(r=>updateResident(r, dt, t));
+  pets.forEach(pw=>updatePet(pw, dt, t)); petT += dt; if(petT > 40){ petMoodTick(); petT = 0; }
   updateEvent(dt); updateShow(dt);
   wheel.rotation.z += dt*.25; cabins.forEach(c=>c.rotation.z = -wheel.rotation.z);
   if(boat.visible){ boat.position.y = -.55 + Math.sin(t*1.4)*.06; boat.rotation.z = Math.sin(t*1.1)*.05; }
@@ -2830,11 +3244,12 @@ function frame(dt, t){
   }
   if(editorOpen && pvRenderer && pvModel && document.getElementById('pv')){
     // face, hair and paint tabs zoom in on the head and keep it facing the camera
-    const zoom = draft && ['face','hair','paint'].includes(draft.tab);
-    if(zoom){ pvModel.rotation.y = Math.sin(t*.7)*.55; pvModel.children[0].position.y = 0; pvHead.getWorldPosition(pvTmp); }
+    const pet = draft && draft.isPet, zoom = !pet && draft && draft.step===0 && FACE_CATS.includes(draft.cat);
+    if(zoom){ pvModel.rotation.y = Math.sin(t*.7)*.45; pvModel.children[0].position.y = 0; pvHead.getWorldPosition(pvTmp); }
+    else if(pet){ pvModel.rotation.y += dt*.8; pvModel.children[0].position.y = Math.abs(Math.sin(t*3))*.04; pvTmp.set(0,.45,0); }
     else { pvModel.rotation.y += dt*.8; pvModel.children[0].position.y = Math.abs(Math.sin(t*2.5))*.05; pvTmp.set(0,1.2,0); }
     const k = Math.min(1, dt*6); pvLook.lerp(pvTmp, k);
-    pvCam.position.lerp(zoom ? pvTmp.clone().add(new T.Vector3(0,.1,2.9)) : new T.Vector3(0,1.4,4.8), k); pvCam.lookAt(pvLook);
+    pvCam.position.lerp(zoom ? pvTmp.clone().add(new T.Vector3(0,.1,2.9)) : pet ? new T.Vector3(0,1.1,2.9) : new T.Vector3(0,1.4,4.8), k); pvCam.lookAt(pvLook);
     pvRenderer.render(pvScene, pvCam);
   }
 }
@@ -2847,10 +3262,12 @@ S.residents.forEach(d=>{ if(!d.catch) d.catch = pick(CATCHES); if(d.partner===un
 if(S.visitor && (S.hour >= 20 || S.hour < 6)) S.visitor = null;
 if(S.isleLevel) applyIsleLevel();
 S.residents.forEach(d=>{ delete d.likes; addResident(d,false); });
+if(!S.pets) S.pets = [];
+S.pets.forEach(pd=>addPet(pd));
 fixCouples();
 spawnVisitor();
 updateCoins(); updateNewsDot(); onResize(); applySky(); loop();
-if(/[?&]debug\b/.test(location.search)) window.__isle = {get S(){ return S; }, get residents(){ return residents; }, get ev(){ return ev; }, get show(){ return show; }, get visitor(){ return visitor; }, quarrel, rebuildChar, cam, checkExpand, applyIsleLevel, canRomance, parentsLine, music(){ return {mStep, musicOn, soundOn, ctx: actx && actx.state}; }, voices(){ return zhVoices.map(v=>v.name+" | "+v.lang); }, pickVoice, speechText, natPitch, startParty, startConcert, openConcert, openAsk, openVisitor, spawnVisitor, makeVisitor, applyLv, openPark, openCafe, openLoc, songSeq, openShop, openRPS, takePhoto, openEditor, step(secs){ for(let i=0;i<secs*30;i++){ simT += 1/30; frame(1/30, simT); } }, select, startEvent, morning, enterRoom, openNews, showDream, byId};
+if(/[?&]debug\b/.test(location.search)) window.__isle = {get S(){ return S; }, get residents(){ return residents; }, get ev(){ return ev; }, get show(){ return show; }, get visitor(){ return visitor; }, quarrel, rebuildChar, cam, checkExpand, applyIsleLevel, canRomance, parentsLine, music(){ return {mStep, musicOn, soundOn, ctx: actx && actx.state}; }, voices(){ return zhVoices.map(v=>v.name+" | "+v.lang); }, pickVoice, speechText, natPitch, startParty, startConcert, openConcert, openAsk, openVisitor, spawnVisitor, makeVisitor, applyLv, openPark, openCafe, openLoc, songSeq, openShop, openRPS, takePhoto, openEditor, openPets, openPetEditor, openPetSheet, get pets(){ return pets; }, step(secs){ for(let i=0;i<secs*30;i++){ simT += 1/30; frame(1/30, simT); } }, select, startEvent, morning, enterRoom, openNews, showDream, byId};
 setTimeout(()=>toast('点一点小人，看看他们想要什么吧！'), 600);
 setTimeout(()=>toast('点房子可以进屋装扮哦'), 3800);
 setTimeout(()=>toast('居民会交朋友、吵架、谈恋爱……多留意他们的心愿 💘'), 7000);
