@@ -96,6 +96,7 @@ textarea.text-in{width:100%;box-sizing:border-box;min-height:100px;resize:vertic
 .acts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .act{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 6px;font-size:14px}
 .act .ic{font-size:24px;line-height:1}
+.ed-tabs{margin-bottom:10px}.ed-tabs .tab{padding:4px 12px 6px;font-size:15px}
 .act.c1{background:#FFE1B8}.act.c2{background:#FFD3DA}.act.c3{background:#D5F3E8}.act.c4{background:#DCE8FF}.act.c5{background:#EADFFF}
 .chooser{margin-top:12px;padding-top:12px;border-top:2px dashed var(--line)}
 .chooser h3{margin:0 0 8px;font-family:var(--display);font-weight:400;font-size:18px}
@@ -225,10 +226,17 @@ function store(k,v){ try{ if(v===undefined) return localStorage.getItem(k); loca
 
 /* ---------------- data ---------------- */
 const SKINS = ['#FFE3CC','#F8CDA6','#E6AD85','#C88A60','#8C5A3C'];
-const HAIRS = [{id:'short',n:'短发'},{id:'spiky',n:'刺刺头'},{id:'buns',n:'丸子头'},{id:'long',n:'长发'},{id:'curly',n:'卷卷毛'}];
-const HAIR_COLORS = ['#3B2A26','#7A4A2A','#E8B94A','#FF8FB1','#6FA8FF','#C9C9D6'];
+const HAIRS = [{id:'short',n:'短发'},{id:'sidepart',n:'三七分'},{id:'bangs',n:'齐刘海'},{id:'spiky',n:'刺刺头'},{id:'mohawk',n:'莫西干'},{id:'bald',n:'光头'},{id:'buns',n:'丸子头'},
+  {id:'ponytail',n:'马尾'},{id:'twintails',n:'双马尾'},{id:'bob',n:'波波头'},{id:'long',n:'长发'},{id:'curly',n:'卷卷毛'},{id:'afro',n:'爆炸头'}];
+const HAIR_F = ['buns','long','ponytail','twintails','bob','bangs','curly','short'], HAIR_M = ['short','sidepart','spiky','mohawk','curly','afro','bangs','bald'];
+const HAIR_COLORS = ['#3B2A26','#7A4A2A','#B85C38','#E8B94A','#FF8FB1','#B48CFF','#6FA8FF','#5CC9A7','#C9C9D6','#FFFFFF'];
 const SHIRTS = ['#FF7A8A','#FFC94D','#5CC9A7','#6FA8FF','#B48CFF','#FF9F5A','#7ED957','#F4F4F4'];
-const EYES = [{id:'round',n:'圆圆眼'},{id:'big',n:'亮晶晶'},{id:'smile',n:'眯眯眼'}];
+const EYES = [{id:'round',n:'圆圆眼'},{id:'big',n:'亮晶晶'},{id:'lash',n:'长睫毛'},{id:'smile',n:'眯眯眼'},{id:'sleepy',n:'困困眼'},{id:'narrow',n:'细长眼'},{id:'dot',n:'豆豆眼'}];
+const BROWS = [{id:'normal',n:'普通'},{id:'thick',n:'浓眉'},{id:'angry',n:'倒八字'},{id:'worried',n:'八字眉'},{id:'none',n:'无'}];
+const NOSES = [{id:'dot',n:'小鼻子'},{id:'round',n:'圆鼻子'},{id:'none',n:'无'}];
+const MOUTHS = [{id:'smile',n:'微笑'},{id:'grin',n:'大笑'},{id:'cat',n:'猫咪嘴'},{id:'small',n:'小嘴'}];
+const CHEEKS = [{id:'blush',n:'腮红'},{id:'freckle',n:'雀斑'},{id:'none',n:'无'}];
+const BEARDS = [{id:'none',n:'无'},{id:'mustache',n:'八字胡'},{id:'goatee',n:'山羊胡'},{id:'beard',n:'络腮胡'}];
 const PERS = {lively:'活泼', gentle:'温柔', cool:'酷酷', funny:'搞笑'};
 const NAMES = ['小桃','豆豆','米粒','阿布','糖糖','乐乐','小舟','团子','可可','皮皮','奶糖','星星','泡芙','果冻','小满','嘟嘟','布丁','小鹿'];
 const FOODS = {
@@ -312,7 +320,8 @@ const THINK_POOL = ['🍰','🐱','🌈','⚽','🎮','🌸','🍕','🐶','⭐'
 const VISITOR_NAMES = ['阿福','小雨','大海','茉莉','阿月','米可','洛洛','拉拉','小帆','阿星'];
 const VISITOR_LINES = ['我在环游世界，这座岛看起来真不错','坐了好久的船，终于看到陆地啦','听说这里住着一群有趣的人','我是个画家，想画下这里的喷泉','能在这里歇歇脚吗？'];
 const SLOT_R = 13.5;
-const SLOTS = Array.from({length:8},(_,i)=>{ const a=i*Math.PI/4+Math.PI/8; return {a, x:Math.cos(a)*SLOT_R, z:Math.sin(a)*SLOT_R}; });
+const SLOT_R2 = 24.5;
+const SLOTS = [SLOT_R, SLOT_R2].flatMap((R, ring)=>Array.from({length:8},(_,i)=>{ const a=i*Math.PI/4+Math.PI/8; return {a, r:R, outer:ring===1, x:Math.cos(a)*R, z:Math.sin(a)*R}; }));
 
 /* ---------------- state ---------------- */
 let S = null; // saved state
@@ -325,8 +334,13 @@ let soundOn = store('xx_sound') !== '0';
 function newVoice(g){ g = g || (Math.random() < .5 ? 'f' : 'm'); return {g, pitch:Math.round((g==='f' ? rand(1.05,1.6) : rand(.7,1.1))*10)/10, rate:Math.round(rand(.85,1.2)*100)/100, seed:Math.random(), name:null}; }
 function guessGender(d){ const known = {'小桃':'f','豆豆':'m','米粒':'f','阿布':'m'}; if(known[d.name]) return known[d.name]; if(d.look && (d.look.hair==='buns' || d.look.hair==='long')) return 'f'; if(d.look && d.look.hair==='spiky') return 'm'; return Math.random() < .5 ? 'f' : 'm'; }
 function ta(d){ return d && d.voice && d.voice.g==='f' ? '她' : '他'; }
-function newLook(){ return {skin:pick(SKINS), hair:pick(HAIRS).id, hairColor:pick(HAIR_COLORS), shirt:pick(SHIRTS), eyes:pick(EYES).id}; }
-const ri = (a,b) => a + Math.floor(Math.random()*(b-a+1));
+function ri(a,b){ return a + Math.floor(Math.random()*(b-a+1)); }
+function newLook(g){
+  g = g || (Math.random() < .5 ? 'f' : 'm');
+  return {skin:pick(SKINS), hair:pick(g==='f' ? HAIR_F : HAIR_M), hairColor:pick(HAIR_COLORS.slice(0,8)), shirt:pick(SHIRTS), eyes:pick(g==='f' ? ['round','big','lash','smile','sleepy'] : ['round','big','smile','sleepy','narrow','dot']),
+    brows:pick(['normal','normal','thick','angry','worried']), nose:pick(['dot','dot','round','none']), mouth:pick(['smile','smile','grin','cat','small']),
+    cheek:g==='f' ? pick(['blush','blush','freckle']) : pick(['blush','none','freckle']), beard:g==='m' && Math.random() < .25 ? pick(['mustache','goatee','beard']) : 'none', height:ri(2,6), build:ri(2,6)};
+}
 function traitsFor(pers){
   const hi = ()=>ri(5,8), lo = ()=>ri(0,3);
   const out = pers==='funny'||pers==='lively', serious = pers==='lively'||pers==='cool';
@@ -510,7 +524,7 @@ const sand = mesh(G.cyl(23,24.2,1.6,64), M('#F6E3B4'), 0,-1.05,0); scene.add(san
 const ground = mesh(G.cyl(20,20.6,2,64), M('#8FD16A'), 0,-1,0); ground.castShadow = false; scene.add(ground);
 const plaza = mesh(new T.CircleGeometry(4.6,48), M('#F2D9A6'), 0,.02,0, false); plaza.rotation.x=-Math.PI/2; plaza.receiveShadow = true; scene.add(plaza);
 // paths to houses
-SLOTS.forEach(s=>{
+SLOTS.filter(s=>!s.outer).forEach(s=>{
   const len = SLOT_R - 4.4; const p = mesh(G.box(1.5,.04,len), M('#EFD29C'), 0,.02,0, false); p.receiveShadow = true;
   const mid = (4.4 + SLOT_R - 2)/2; p.position.set(Math.cos(s.a)*mid, .021, Math.sin(s.a)*mid); p.rotation.y = -s.a + Math.PI/2; scene.add(p);
 });
@@ -549,6 +563,7 @@ function tree(x,z,s){
 for(let i=0;i<46;i++){
   const a = srand()*Math.PI*2, r = 16+srand()*3.4, x=Math.cos(a)*r, z=Math.sin(a)*r;
   if(SLOTS.some(s=>Math.hypot(s.x-x,s.z-z)<3.3)) continue;
+  if(SLOTS.some(s=>!s.outer && Math.abs(Math.atan2(Math.sin(a-s.a),Math.cos(a-s.a))) < .1)) continue; // keep the way to the outer plots clear
   if(Math.abs(Math.atan2(Math.sin(a+Math.PI/4),Math.cos(a+Math.PI/4))) < .3 || Math.abs(Math.atan2(Math.sin(a+Math.PI/2),Math.cos(a+Math.PI/2))) < .2) continue; // beach & pier
   tree(x,z,.8+srand()*.5);
 }
@@ -616,6 +631,40 @@ function buildHair(look){
       [[0,0],[.5,0],[.5,1.2],[.5,2.4],[.5,3.6],[.5,4.8],[1.0,.6],[1.0,1.8],[1.0,3.0],[1.05,4.2],[1.0,5.4],[1.45,4.0],[1.45,5.0]].forEach(([p,a])=>{
         const d = onSphere(p,a,1).applyAxisAngle(new T.Vector3(1,0,0),-.4); const s = new T.Mesh(G.sph(.24,10,8), m); s.position.copy(d.multiplyScalar(.62)); g.add(s); });
       break;
+    case 'bob': {
+      g.add(cap(-.28));
+      const back = new T.Mesh(new T.CylinderGeometry(.66,.7,.5,24,1,true,Math.PI*.35,Math.PI*1.3), m); back.position.set(0,-.12,-.02); g.add(back);
+      break; }
+    case 'ponytail': {
+      g.add(cap(-.3));
+      g.add(mesh(G.sph(.12,10,8), M('#FF7A8A'), 0,.28,-.64));
+      const tail = new T.Mesh(G.sph(.17,12,10), m); tail.position.set(0,-.12,-.78); tail.scale.set(1,2.3,1); tail.rotation.x = .35; g.add(tail);
+      break; }
+    case 'twintails':
+      g.add(cap(-.3));
+      [-1,1].forEach(s=>{ g.add(mesh(G.sph(.08,8,6), M('#FF7A8A'), s*.6,.18,-.18)); const t = new T.Mesh(G.sph(.16,12,10), m); t.position.set(s*.72,-.2,-.22); t.scale.set(1,2.4,1); t.rotation.z = s*.25; g.add(t); });
+      break;
+    case 'afro':
+      g.add(cap(-.35, Math.PI*.5, .68));
+      for(let p=0;p<3;p++) for(let i=0;i<9;i++){ const pol = .15 + p*.5, az = i/9*Math.PI*2 + p*.3; const d = onSphere(pol, az, 1).applyAxisAngle(new T.Vector3(1,0,0),-.45);
+        if(d.z > .55 && d.y < .55) continue; const s = new T.Mesh(G.sph(.3,10,8), m); s.position.copy(d.multiplyScalar(.72)); g.add(s); }
+      break;
+    case 'mohawk': {
+      g.add(cap(-.35, Math.PI*.18, .64));
+      for(let i=0;i<6;i++){ const t = -.45 + i*.38, dir = new T.Vector3(0, Math.cos(t), -Math.sin(t));
+        const cn = new T.Mesh(G.cone(.13,.42,8), m); cn.position.copy(dir.clone().multiplyScalar(.62)); cn.quaternion.setFromUnitVectors(new T.Vector3(0,1,0), dir); cn.scale.set(.55,1,1); g.add(cn); }
+      break; }
+    case 'bald':
+      break;
+    case 'bangs': {
+      g.add(cap(-.3));
+      const fr = new T.Mesh(new T.SphereGeometry(.665,24,8,Math.PI*.18,Math.PI*.64,Math.PI*.2,Math.PI*.2), m); g.add(fr); // front band over the forehead
+      const back = new T.Mesh(new T.CylinderGeometry(.65,.68,.3,24,1,true,Math.PI*.4,Math.PI*1.2), m); back.position.set(0,.02,-.02); g.add(back);
+      break; }
+    case 'sidepart': {
+      g.add(cap(-.33));
+      const sw = new T.Mesh(G.sph(.3,12,10), m); sw.position.set(-.16,.5,.4); sw.scale.set(1.6,.55,.75); sw.rotation.z = .35; g.add(sw);
+      break; }
     default:
       g.add(cap(-.35));
       { const f = new T.Mesh(G.sph(.2,10,8), m); f.position.set(.28,.52,.36); f.scale.set(1.3,.7,.8); g.add(f); }
@@ -632,56 +681,88 @@ function buildAcc(type){
   if(type==='balloon'){ const bl = mesh(G.sph(.42,16,12), M('#FF5E6E'), .95,1.35,0); bl.scale.y=1.15; g.add(bl); g.add(mesh(G.cyl(.012,.012,1.9,4), B('#3B3355'), .95,.2,0,false)); g.userData.balloon = bl; }
   return g;
 }
+function shade(hex, k){ const c = new T.Color(hex); c.multiplyScalar(k); return '#' + c.getHexString(); }
 function buildChar(look, acc, outfit){
   const root = new T.Group(), rig = new T.Group(); root.add(rig);
   const O = outfit || 'tee';
+  // Mii-like proportions: slim body, visible legs & arms, round head. height → legs, build → torso width
+  const H = look.height ?? 4, W = look.build ?? 4, legK = .82 + H*.045, wK = .82 + W*.06, lift = .44*(legK-1);
   const topC = {suit:'#2F2B45', chef:'#FFFFFF', pajamas:'#B9C8FF', princess:'#FFB3D1', astronaut:'#F4F4F4', dino:'#7ED957'}[O] || look.shirt;
   const pantsC = {overalls:'#4A7FD6', suit:'#2F2B45', pajamas:'#B9C8FF', astronaut:'#F4F4F4', dino:'#7ED957', kimono:look.shirt}[O] || '#5A4A6E';
-  const bareLegs = O==='dress' || O==='princess';
-  const shirt = M(topC), skin = M(look.skin), pants = M(bareLegs ? look.skin : pantsC), shoe = bareLegs ? M('#FF7A8A') : pants;
-  const body = mesh(G.cyl(.34,.5,.72,20), shirt, 0,.74,0); rig.add(body);
-  const belly = mesh(new T.SphereGeometry(.5,20,10,0,Math.PI*2,Math.PI/2,Math.PI/2), O==='overalls' ? M('#4A7FD6') : shirt, 0,.38,0); belly.scale.y=.4; rig.add(belly);
-  const ex = (geo, col, x,y,z, rx=0) => { const m = mesh(geo, typeof col==='string' ? M(col) : col, x,y,z); m.rotation.x = rx; rig.add(m); return m; };
-  const slope = -.22; // front of the torso leans in
-  if(O==='dress') ex(G.cyl(.36,.72,.5,20), topC, 0,.3,0);
-  if(O==='princess'){ ex(G.cyl(.36,.88,.62,24), '#FF8FB8', 0,.3,0); ex(G.cyl(.37,.52,.1,20), '#FFFFFF', 0,.6,0); }
-  if(O==='kimono'){ ex(G.cyl(.46,.62,.5,20), topC, 0,.3,0); ex(G.cyl(.42,.47,.16,20), '#FFC94D', 0,.8,0); }
-  if(O==='overalls'){ ex(G.box(.44,.3,.06), '#4A7FD6', 0,.8,.4, slope); [-1,1].forEach(s=>ex(G.box(.07,.36,.05), '#4A7FD6', s*.18,1.0,.35, slope)); }
-  if(O==='suit'){ ex(G.box(.16,.3,.05), '#FFFFFF', 0,.92,.37, slope); ex(G.box(.07,.26,.05), '#FF5E6E', 0,.88,.39, slope); }
-  if(O==='hoodie'){ const hd = ex(new T.SphereGeometry(.46,16,12,0,Math.PI*2,0,Math.PI*.5), M(topC,true), 0,1.16,-.3); hd.rotation.x = -.7; hd.scale.set(1,.8,1); [-1,1].forEach(s=>ex(G.cyl(.018,.018,.26,4), '#FFFFFF', s*.09,.98,.37)); }
-  if(O==='pajamas') [[-.14,.9],[.16,.72],[-.05,.58]].forEach(([x,y])=>ex(G.sph(.05,8,6), '#FFD54D', x,y,.42));
-  if(O==='astronaut'){ ex(G.box(.62,.7,.3), '#DCD6E8', 0,.8,-.46); const cl = ex(new T.TorusGeometry(.36,.07,8,20), '#BDB5C9', 0,1.12,0); cl.rotation.x = Math.PI/2; }
-  if(O==='dino'){ const tl = ex(G.cone(.26,.9,10), '#7ED957', 0,.42,-.62); tl.rotation.x = -1.95; for(let i=0;i<4;i++) ex(G.cone(.09,.22,6), '#FFC94D', 0,.5+i*.18,-.47+i*.03, -.3); }
-  const legs = [], feet = [];
+  const bareLegs = O==='dress' || O==='princess', longSleeve = ['suit','hoodie','kimono','pajamas','astronaut','dino','chef'].includes(O);
+  const shirt = M(topC), skin = M(look.skin), pants = M(bareLegs ? look.skin : pantsC);
+  const shoe = M(bareLegs ? '#FF7A8A' : O==='astronaut' ? '#BDB5C9' : O==='dino' ? '#5DBB63' : '#6E5A4A');
+  const legs = [];
   [-1,1].forEach(s=>{
-    const lg = new T.Group(); lg.position.set(s*.18,.32,0);
-    lg.add(mesh(G.cyl(.11,.11,.26,10), pants, 0,-.12,0));
-    const ft = mesh(G.sph(.15,12,8), shoe, 0,-.24,.05); ft.scale.set(1,.6,1.35); lg.add(ft);
+    const lg = new T.Group(); lg.position.set(s*.13*wK, .5 + lift, 0);
+    lg.add(mesh(G.cyl(.085,.078,.44*legK,10), pants, 0,-.22*legK,0));
+    const ft = mesh(G.sph(.12,12,8), shoe, 0,-.45*legK,.06); ft.scale.set(1,.6,1.55); lg.add(ft);
     rig.add(lg); legs.push(lg);
   });
+  const up = new T.Group(); up.position.y = lift; rig.add(up);
+  const body = new T.Group(); body.scale.set(wK,1,wK); up.add(body);
+  const ex = (geo, col, x,y,z, rx=0) => { const m = mesh(geo, typeof col==='string' ? M(col) : col, x,y,z); m.rotation.x = rx; body.add(m); return m; };
+  ex(G.cyl(.27,.29,.2,18), bareLegs ? shirt : M(pantsC), 0,.58,0);           // hips / shorts
+  ex(G.cyl(.24,.28,.56,18), shirt, 0,.94,0);                                 // torso
+  const sh = ex(G.sph(.26,18,10), shirt, 0,1.2,0); sh.scale.set(1,.42,.82);   // rounded shoulders
+  up.add(mesh(G.cyl(.075,.085,.12,10), skin, 0,1.27,0));                    // neck
+  if(O==='dress') ex(G.cyl(.28,.58,.45,20), topC, 0,.45,0);
+  if(O==='princess'){ ex(G.cyl(.28,.72,.55,24), '#FF8FB8', 0,.42,0); ex(G.cyl(.29,.42,.08,20), '#FFFFFF', 0,.68,0); }
+  if(O==='kimono'){ ex(G.cyl(.32,.46,.6,20), topC, 0,.4,0); ex(G.cyl(.285,.31,.13,20), '#FFC94D', 0,.8,0); }
+  if(O==='overalls'){ ex(G.box(.34,.26,.05), '#4A7FD6', 0,.83,.27, -.08); [-1,1].forEach(s=>ex(G.box(.05,.3,.04), '#4A7FD6', s*.13,1.03,.24, -.1)); }
+  if(O==='suit'){ ex(G.box(.13,.26,.04), '#FFFFFF', 0,1.0,.255, -.08); ex(G.box(.05,.22,.045), '#FF5E6E', 0,.96,.27, -.08); }
+  if(O==='hoodie'){ const hd = ex(new T.SphereGeometry(.34,16,12,0,Math.PI*2,0,Math.PI*.5), M(topC,true), 0,1.2,-.2); hd.rotation.x = -.75; hd.scale.set(1,.8,1); [-1,1].forEach(s=>ex(G.cyl(.015,.015,.22,4), '#FFFFFF', s*.07,1.04,.27)); }
+  if(O==='pajamas') [[-.1,1.02],[.12,.88],[-.03,.74]].forEach(([x,y])=>ex(G.sph(.04,8,6), '#FFD54D', x,y,.265));
+  if(O==='astronaut'){ ex(G.box(.48,.55,.24), '#DCD6E8', 0,.96,-.34); const cl = ex(new T.TorusGeometry(.25,.06,8,20), '#BDB5C9', 0,1.24,0); cl.rotation.x = Math.PI/2; }
+  if(O==='dino'){ const tl = ex(G.cone(.2,.75,10), '#7ED957', 0,.62,-.42); tl.rotation.x = -1.95; for(let i=0;i<4;i++) ex(G.cone(.07,.18,6), '#FFC94D', 0,.72+i*.15,-.28, -.3); }
   const arms = [];
   [-1,1].forEach(s=>{
-    const pv = new T.Group(); pv.position.set(s*.42,1.0,0);
-    const a = mesh(G.sph(.13,12,10), shirt, 0,-.22,0); a.scale.set(1,2.1,1); pv.add(a);
-    pv.add(mesh(G.sph(.12,10,8), skin, 0,-.48,0));
-    pv.rotation.z = s*.18; rig.add(pv); arms.push(pv);
+    const pv = new T.Group(); pv.position.set(s*.3*wK, 1.16, 0);
+    pv.add(mesh(G.cyl(.075,.068,.28,10), shirt, 0,-.14,0));
+    pv.add(mesh(G.cyl(.064,.058,.22,10), longSleeve ? shirt : skin, 0,-.38,0));
+    pv.add(mesh(G.sph(.078,10,8), skin, 0,-.52,0));
+    pv.rotation.z = s*.12; up.add(pv); arms.push(pv);
   });
-  const head = new T.Group(); head.position.y = 1.64; rig.add(head);
+  // head (built at the classic 0.62 radius, then scaled down to Mii size)
+  const head = new T.Group(); head.position.y = 1.78; head.scale.setScalar(.86); up.add(head);
   head.add(mesh(G.sph(.62,28,20), skin));
-  const eyeMat = M('#2A2438'), white = B('#FFFFFF'), eyes = [];
+  const eyeMat = M('#2A2438'), white = B('#FFFFFF'), eyes = [], E = look.eyes || 'round';
+  const browC = ['#C9C9D6','#FFFFFF','#E8B94A','#FF8FB1'].includes(look.hairColor) ? shade(look.hairColor,.7) : look.hairColor;
   [-1,1].forEach(s=>{
     let e;
-    if(look.eyes==='smile'){ e = new T.Mesh(new T.TorusGeometry(.085,.028,6,12,Math.PI), eyeMat); e.position.set(s*.22,.02,.575); }
+    if(E==='smile'){ e = new T.Mesh(new T.TorusGeometry(.085,.028,6,12,Math.PI), eyeMat); e.position.set(s*.22,.02,.575); }
+    else if(E==='dot'){ e = new T.Mesh(G.sph(.05,10,8), eyeMat); e.position.set(s*.2,.03,.585); }
     else {
-      const big = look.eyes==='big'; e = new T.Group(); e.position.set(s*.22,.04,.555);
-      const ball = new T.Mesh(G.sph(big?.12:.09,14,10), eyeMat); ball.scale.set(1,1.3,.55); e.add(ball);
-      const hl = new T.Mesh(G.sph(big?.045:.03,8,6), white); hl.position.set(s*-.03+.02,.05,.05); e.add(hl);
+      const big = E==='big' || E==='lash'; e = new T.Group(); e.position.set(s*.22,.04,.555);
+      const ball = new T.Mesh(G.sph(big?.12:.09,14,10), eyeMat);
+      ball.scale.set(E==='narrow' ? 1.35 : 1, E==='sleepy' ? .55 : E==='narrow' ? .6 : 1.3, .55); e.add(ball);
+      const hl = new T.Mesh(G.sph(big?.045:.03,8,6), white); hl.position.set(s*-.03+.02, E==='sleepy'?.01:.05, .05); e.add(hl);
       if(big){ const hl2 = new T.Mesh(G.sph(.02,6,4), white); hl2.position.set(-.03,-.04,.06); e.add(hl2); }
+      if(E==='lash') for(let i=0;i<2;i++){ const l = new T.Mesh(G.box(.07,.022,.02), eyeMat); l.position.set(s*(.1+i*.03), .1+i*.05, .03); l.rotation.z = s*(.5+i*.35); e.add(l); }
+      if(E==='sleepy'){ const lid = new T.Mesh(G.box(.22,.025,.03), eyeMat); lid.position.set(0,.06,.04); e.add(lid); }
     }
     head.add(e); eyes.push(e);
-    const bl = new T.Mesh(G.sph(.1,10,8), M('#FF9AAE')); bl.position.set(s*.36,-.14,.47); bl.scale.set(1,.65,.3); bl.lookAt(bl.position.clone().multiplyScalar(2)); bl.scale.set(1,.65,.3); head.add(bl);
+    const BR = look.brows || 'normal';
+    if(BR!=='none'){
+      const br = new T.Mesh(G.box(.2, BR==='thick' ? .075 : .045, .05), M(browC)); br.position.set(s*.22,.21,.55); br.rotation.x = -.35;
+      br.rotation.z = BR==='angry' ? s*.35 : BR==='worried' ? -s*.3 : s*-.06; head.add(br);
+    }
+    const CH = look.cheek || 'blush';
+    if(CH==='blush'){ const bl = new T.Mesh(G.sph(.1,10,8), M('#FF9AAE')); bl.position.set(s*.36,-.14,.47); bl.lookAt(bl.position.clone().multiplyScalar(2)); bl.scale.set(1,.65,.3); head.add(bl); }
+    if(CH==='freckle') [[.3,-.1],[.36,-.16],[.26,-.17]].forEach(([x,y])=>{ const f = new T.Mesh(G.sph(.022,6,4), M(shade(look.skin,.6))); f.position.set(s*x, y, Math.sqrt(Math.max(0,.62*.62-x*x-y*y))); head.add(f); });
   });
-  const mouth = new T.Mesh(new T.TorusGeometry(.1,.028,8,16,Math.PI), eyeMat); mouth.position.set(0,-.2,.575); mouth.rotation.z = Math.PI; head.add(mouth);
+  const NO = look.nose || 'dot';
+  if(NO==='dot') head.add(mesh(G.sph(.045,10,8), M(shade(look.skin,.88)), 0,-.06,.61, false));
+  if(NO==='round'){ const n = mesh(G.sph(.085,12,10), M(shade(look.skin,.9)), 0,-.07,.6, false); n.scale.set(1.15,.9,.8); head.add(n); }
+  const mouth = new T.Group(); mouth.position.set(0,-.21,.575); mouth.rotation.z = Math.PI; head.add(mouth);
+  const MO = look.mouth || 'smile';
+  if(MO==='grin'){ const m1 = new T.Mesh(new T.CircleGeometry(.11,18,0,Math.PI), M('#B3334A',true)); mouth.add(m1); const tth = new T.Mesh(G.box(.16,.035,.01), white); tth.position.set(0,.085,.005); mouth.add(tth); }
+  else if(MO==='cat') [-1,1].forEach(s=>{ const a = new T.Mesh(new T.TorusGeometry(.05,.022,6,12,Math.PI), eyeMat); a.position.x = s*.05; mouth.add(a); });
+  else mouth.add(new T.Mesh(new T.TorusGeometry(MO==='small' ? .06 : .1,.028,8,16,Math.PI), eyeMat));
+  const BE = look.beard || 'none', beardM = M(look.hairColor, true);
+  if(BE==='mustache') [-1,1].forEach(s=>{ const m = mesh(G.sph(.08,10,8), beardM, s*.085,-.11,.585); m.scale.set(1.5,.55,.5); m.rotation.z = s*.25; head.add(m); });
+  if(BE==='beard'){ const b = new T.Mesh(new T.SphereGeometry(.645,24,10,Math.PI/2-1.25,2.5,Math.PI*.66,Math.PI*.24), beardM); head.add(b); }
+  if(BE==='goatee'){ const g = mesh(G.cone(.07,.18,10), beardM, 0,-.5,.42); g.rotation.x = Math.PI - .5; head.add(g); }
   head.add(buildHair(look));
   if(!acc){
     if(O==='chef'){ head.add(mesh(G.cyl(.36,.33,.36,20), M('#FFFFFF'), 0,.74,-.04)); const puff = mesh(G.sph(.44,18,12), M('#FFFFFF'), 0,1.0,-.04); puff.scale.y = .62; head.add(puff); }
@@ -717,7 +798,7 @@ function buildHouse(r){
   h.userData.pick = {type:'house', r};
   scene.add(h); houses[r.d.slot] = h;
 }
-function doorPoint(slot){ const s = SLOTS[slot]; const k = (SLOT_R-2.4)/SLOT_R; return new T.Vector3(s.x*k,0,s.z*k); }
+function doorPoint(slot){ const s = SLOTS[slot]; const k = (s.r-2.4)/s.r; return new T.Vector3(s.x*k,0,s.z*k); }
 
 // shop stand
 const shopStand = new T.Group();
@@ -891,7 +972,7 @@ function avoidObstacles(pos, dest, step){
 }
 function randomSpot(){
   for(let k=0;k<30;k++){
-    const a = rand(0,6.28), r = rand(3.4,11.2), x = Math.cos(a)*r, z = Math.sin(a)*r;
+    const a = rand(0,6.28), r = rand(3.4, S && S.isleLevel ? 27 : 11.2), x = Math.cos(a)*r, z = Math.sin(a)*r;
     if(EXCL.some(e=>Math.hypot(e.x-x,e.z-z)<e.r+.4)) continue;
     if(SLOTS.some(s=>Math.hypot(s.x-x,s.z-z)<3.1)) continue;
     return new T.Vector3(x,0,z);
@@ -975,7 +1056,11 @@ function compat(a,b){ if(a.d.pers===b.d.pers) return 3; const pr=[a.d.pers,b.d.p
 function byId(id){ return residents.find(x=>x.d.id===id); }
 function logNews(msg){ if(!S.log) S.log = []; S.log.push(msg); if(S.log.length > 30) S.log.shift(); }
 function isFamily(a,b){ const pa = a.d.parents||[], pb = b.d.parents||[]; return pa.includes(b.d.id) || pb.includes(a.d.id) || pa.some(x=>pb.includes(x)); }
-function canRomance(a,b){ return !a.d.kid && !b.d.kid && !a.d.partner && !b.d.partner && !isFamily(a,b); }
+function gOf(r){ return (r.d.voice && r.d.voice.g) || 'f'; }
+// likes: 'opp' opposite gender (default) / 'same' / 'any' — both sides have to be into each other
+function likesG(x, y){ const l = x.d.likes || 'opp'; return l==='any' || (l==='opp' ? gOf(x)!==gOf(y) : gOf(x)===gOf(y)); }
+function canRomance(a,b){ return !a.d.kid && !b.d.kid && !a.d.partner && !b.d.partner && !isFamily(a,b) && likesG(a,b) && likesG(b,a); }
+function parentsLine(d){ const ps = (d.parents||[]).map(byId).filter(Boolean); if(ps.length < 2) return '家里人最好了'; const t = ps.map(p=>gOf(p)==='f' ? '妈妈' : '爸爸'); return (t[0]===t[1] ? '两个' + t[0] : '爸爸妈妈') + '最好了'; }
 function hasSocialWant(r){ return !!(r.d.want && SOCIAL.includes(r.d.want.type)); }
 function relName(a,b){ if(a.d.partner===b.d.id) return a.d.pType==='spouse' ? '💍 夫妻' : '💑 恋人'; if(isFamily(a,b)) return '👪 家人'; return null; }
 function quarrel(a,b){
@@ -1007,7 +1092,7 @@ function talk(r){
     if(d.outfit && d.outfit!=='tee') lines.push(`你看我的${OUTFITS[d.outfit].n}好看吗`);
     const pt = d.partner && byId(d.partner);
     if(pt) lines.push(d.pType==='spouse' ? `和${pt.d.name}的每一天都很幸福` : `最喜欢${pt.d.name}了`, `今天想和${pt.d.name}去约会`);
-    if(d.kid) lines.push('我长大要当岛主！','爸爸妈妈最好了');
+    if(d.kid) lines.push('我长大要当岛主！', parentsLine(d));
     const best = residents.filter(o=>o!==r && !isFamily(r,o)).sort((x,y)=>(d.friends[y.d.id]||0)-(d.friends[x.d.id]||0))[0];
     if(best && (d.friends[best.d.id]||0) >= 50) lines.push(`${best.d.name}是我的好朋友`);
   }
@@ -1038,7 +1123,7 @@ function endChat(r, natural){
       const [a,b] = Math.random()<.5 ? [r,o] : [o,r];
       if(!hasSocialWant(a)){ a.d.want = {type:'love', with:b.d.id}; toast(`${a.d.name} 好像喜欢上了 ${b.d.name}！去问问吧 💘`, 'pink'); logNews(`💘 ${a.d.name} 偷偷喜欢上了 ${b.d.name}`); save(); }
     }
-    if(natural && r.d.partner===o.d.id && S.hour < 18.5 && !isNight() && Math.random() < .35){ const k = pick(['cafe','park','beach','tower']); startDate(r, o, k); logNews(`💕 ${r.d.name} 和 ${o.d.name} 去${LOCS[k].n}约会了`); return; }
+    if(natural && r.d.partner===o.d.id && S.hour < 18.5 && !isNight() && Math.random() < .35){ const k = pick(dateLocs()); startDate(r, o, k); logNews(`💕 ${r.d.name} 和 ${o.d.name} 去${LOCS[k].n}约会了`); return; }
   }
   r.state = 'idle'; r.timer = rand(1,2.5);
 }
@@ -1289,14 +1374,15 @@ function resolveEvent(){
 }
 function haveBaby(a, b){
   a.d.lastBaby = b.d.lastBaby = S.day;
-  const used = new Set(residents.map(r=>r.d.slot)), free = SLOTS.map((_,i)=>i).filter(i=>!used.has(i));
+  const free = freeSlots();
   if(!free.length) return null;
   const A = a.d.look, B = b.d.look, usedNames = new Set(residents.map(r=>r.d.name));
-  const look = {skin:pick([A.skin,B.skin]), hair:pick(HAIRS).id, hairColor:pick([A.hairColor,B.hairColor]), shirt:pick(SHIRTS), eyes:pick([A.eyes,B.eyes])};
+  const kg = Math.random() < .5 ? 'f' : 'm', look = Object.assign(newLook(kg), {skin:pick([A.skin,B.skin]), hairColor:pick([A.hairColor,B.hairColor]), eyes:pick([A.eyes,B.eyes]), nose:pick([A.nose||'dot',B.nose||'dot']), mouth:pick([A.mouth||'smile',B.mouth||'smile']), beard:'none', height:2});
   const d = makeResData(pick(NAMES.filter(n=>!usedNames.has(n)).concat(['小宝'])), look, pick([a.d.pers,b.d.pers]), free[0]);
+  d.voice = newVoice(kg); d.voice.pitch = Math.min(2, d.voice.pitch + .3);
   d.kid = true; d.bornDay = S.day; d.parents = [a.d.id, b.d.id]; d.catch = pick([a.d.catch, b.d.catch]); d.room.items.push({type:'teddy',x:5,z:1,rot:0});
   d.friends[a.d.id] = a.d.friends[d.id] = 60; d.friends[b.d.id] = b.d.friends[d.id] = 60;
-  const r = addResident(d, true); confetti(scene, r.p.root.position);
+  const r = addResident(d, true); confetti(scene, r.p.root.position); checkExpand();
   return r;
 }
 function updateNewsDot(){ $('#newsDot').hidden = !S.newsUnread; }
@@ -1322,7 +1408,7 @@ function showDream(r){
 function mf(m){ return 440*Math.pow(2,(m-69)/12); }
 function shuffle(a){ a = a.slice(); for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; }
 function fillLyrics(text, d){ return String(text||'').replace(/\{name\}/g, d.name).replace(/\{catch\}/g, d.catch||'').replace(/\{food\}/g, FOODS[d.fav] ? FOODS[d.fav].n : '蛋糕'); }
-function freeSlots(){ return SLOTS.map((_,i)=>i).filter(i=>!residents.some(r=>r.d.slot===i)); }
+function freeSlots(){ return SLOTS.slice(0, slotCap()).map((_,i)=>i).filter(i=>!residents.some(r=>r.d.slot===i)); }
 function bdayText(d){ const n = (d.bday - (((S.day-1) % YEAR) + 1) + YEAR) % YEAR; return n===0 ? '今天生日' : `${n}天后生日`; }
 function faceDotHtml(d, size=34){ return `<span class="face-dot" style="width:${size}px;height:${size}px;margin-top:8px;background:${d.look.skin};--hair:${d.look.hairColor}"></span>`; }
 function modalHead(title){ return `<div class="modal-head"><h2>${title}</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>`; }
@@ -1330,10 +1416,11 @@ function modalHead(title){ return `<div class="modal-head"><h2>${title}</h2><but
 /* ---------------- hanging out & dates ---------------- */
 function locSpot(k){
   const L = LOCS[k];
-  if(k==='beach') return new T.Vector3(13.3+rand(-1,1), 0, -13.3+rand(-1,1));
+  if(k==='beach') return new T.Vector3(L.x*.9+rand(-1,1), 0, L.z*.9+rand(-1,1));
   const d = Math.hypot(L.x,L.z), ux = -L.x/d, uz = -L.z/d, px = -uz, pz = ux, off = L.r + (k==='cafe' ? 1.7 : 1.1), side = rand(-1.2,1.2);
   return new T.Vector3(L.x + ux*off + px*side, 0, L.z + uz*off + pz*side);
 }
+function dateLocs(){ return S.isleLevel ? ['cafe','park','beach','tower','flower','spring'] : ['cafe','park','beach','tower']; }
 function goHang(r, k){ r.state = 'walk'; r.target = null; r.onArrive = 'hang'; r.hangLoc = k; r.dest = locSpot(k); }
 function startDate(a, b, k){
   k = k || pick(['cafe','park','beach','tower']);
@@ -1355,6 +1442,9 @@ function openLoc(k){
   if(k==='stage') return openConcert();
   if(k==='pier') return S.visitor ? openVisitor() : toast('今天没有船靠岸。说不定明天会有旅行者来哦');
   if(k==='beach') return toast('🏖️ 天气好的时候，大家会来海滩吹吹海风');
+  if(k==='spring') return openSpring();
+  if(k==='salon') return openSalon();
+  if(k==='flower'){ if(S.flowerDay !== S.day){ S.flowerDay = S.day; S.inv.acc.flower = (S.inv.acc.flower||0) + 1; toast('🌷 在花田摘了一朵小红花，可以送给居民戴哦', 'pink'); save(); } else toast('🌷 花田里开满了花，情侣们最喜欢来这里约会'); return; }
   if(k==='tower'){
     if(selected) closeSheet();
     cam.goal.set(0,0,0); cam.distGoal = 50; cam.pitch = 1.1;
@@ -1619,7 +1709,7 @@ function inviteVisitor(){
   const d = S.visitor.d; d.slot = free[0]; S.visitor = null; despawnVisitor(); closeModal();
   const r = addResident(d, true); r.p.root.position.copy(PIER_SPOT); r.state = 'walk'; r.dest = doorPoint(d.slot); r.onArrive = null;
   confetti(scene, PIER_SPOT); sfx.happy(); cam.goal.copy(PIER_SPOT);
-  toast(`${d.name} 决定在心心小岛住下啦！`, 'gold'); logNews(`🏠 旅行者 ${d.name} 在小岛住了下来`); save();
+  toast(`${d.name} 决定在心心小岛住下啦！`, 'gold'); logNews(`🏠 旅行者 ${d.name} 在小岛住了下来`); save(); checkExpand();
 }
 
 /* ---------------- questions & mini games ---------------- */
@@ -1705,6 +1795,104 @@ function musicTick(){
 }
 setInterval(musicTick, 120);
 
+/* ---------------- island expansion ---------------- */
+// once the first 8 plots are full the island grows: an outer ring of 8 more plots and three new places
+function slotCap(){ return S && S.isleLevel ? SLOTS.length : 8; }
+function camMax(){ return S && S.isleLevel ? 85 : 60; }
+let foamK = 1, expansionBuilt = false;
+const steam = [];
+const LOCS2 = {
+  flower:{n:'花田',e:'🌷',x:18,z:18,r:0},
+  spring:{n:'温泉',e:'♨️',x:-18,z:18,r:2.3},
+  salon:{n:'美发店',e:'💇',x:-18,z:-18,r:1.9}
+};
+function buildExpansion(){
+  if(expansionBuilt) return; expansionBuilt = true;
+  Object.assign(LOCS, LOCS2);
+  Object.values(LOCS2).forEach(l=>{ if(l.r) EXCL.push({x:l.x, z:l.z, r:l.r}); });
+  SLOTS.forEach(s=>EXCL.push({x:s.x, z:s.z, r:1.8}));
+  HANG_LOCS.push('flower','spring');
+  // ring road + short paths to the outer plots
+  const road = new T.Mesh(new T.RingGeometry(19.8,21.1,120), M('#EFD29C')); road.rotation.x = -Math.PI/2; road.position.y = .022; road.receiveShadow = true; scene.add(road);
+  SLOTS.filter(s=>s.outer).forEach(s=>{ const p = mesh(G.box(1.5,.04,1.8), M('#EFD29C'), 0,.021,0, false); const mid = 21.8; p.position.set(Math.cos(s.a)*mid,.021,Math.sin(s.a)*mid); p.rotation.y = -s.a + Math.PI/2; p.receiveShadow = true; scene.add(p); });
+  // outer woods
+  let sd = 99; const r2 = ()=>{ sd = (sd*16807) % 2147483647; return (sd-1)/2147483646; };
+  for(let i=0;i<60;i++){
+    const a = r2()*Math.PI*2, r = 26.8 + r2()*2.6, x = Math.cos(a)*r, z = Math.sin(a)*r;
+    if(SLOTS.some(s=>Math.hypot(s.x-x,s.z-z) < 3.6)) continue;
+    if(Object.values(LOCS2).some(l=>Math.hypot(l.x-x,l.z-z) < 4)) continue;
+    const da = k=>Math.abs(Math.atan2(Math.sin(a-k), Math.cos(a-k)));
+    if(da(-Math.PI/4) < .16 || da(-Math.PI/2) < .12) continue;
+    seed = Math.floor(r2()*1e6)+1; tree(x, z, .8 + r2()*.5);
+  }
+  for(let i=0;i<90;i++){ const a = r2()*Math.PI*2, r = 21.8 + r2()*7, x = Math.cos(a)*r, z = Math.sin(a)*r; if(SLOTS.some(s=>Math.hypot(s.x-x,s.z-z) < 2.6)) continue; scene.add(mesh(G.sph(.13,8,6), M(FLOWER_COLS[i%FLOWER_COLS.length]), x,.18,z, false)); }
+  (function(){ // flower field
+    const g = new T.Group(), cols = ['#FF8FB1','#FFD54D','#B48CFF','#FF7A5A','#FFFFFF','#6FA8FF'];
+    for(let i=0;i<7;i++) for(let j=0;j<5;j++){ const x = -2.4 + i*.8, z = -1.2 + j*.6; g.add(mesh(G.cyl(.03,.03,.3,4), M('#4FAE6B'), x,.15,z, false)); g.add(mesh(G.sph(.16,10,8), M(cols[(i+j*2)%cols.length]), x,.36,z, false)); }
+    [[-3,-1.7],[3,-1.7],[-3,1.7],[3,1.7]].forEach(([x,z])=>g.add(mesh(G.box(.12,.6,.12), M('#C98B62'), x,.3,z)));
+    [-1.7,1.7].forEach(z=>g.add(mesh(G.box(6.1,.08,.06), M('#C98B62'), 0,.45,z)));
+    placeLoc(g,'flower',2.2);
+  })();
+  (function(){ // hot spring
+    const g = new T.Group();
+    g.add(mesh(G.cyl(1.9,2.0,.3,28), M('#BDB5C9'), 0,.15,0)); g.add(mesh(G.cyl(1.6,1.6,.1,28), M('#8FD8EE'), 0,.27,0));
+    for(let i=0;i<10;i++){ const a = i/10*Math.PI*2; const rk = mesh(G.sph(.34,8,6), M(i%2?'#A89FB8':'#C9C1D6'), Math.cos(a)*1.9,.3,Math.sin(a)*1.9); rk.scale.y = .7; g.add(rk); }
+    g.add(mesh(G.box(.9,.6,.06), M('#C98B62'), 1.9,.9,1.2)); g.add(mesh(G.cyl(.04,.04,1,6), M('#7A5A45'), 1.9,.4,1.2));
+    for(let i=0;i<5;i++){ const st = new T.Mesh(G.sph(.35,10,8), new T.MeshBasicMaterial({color:'#FFFFFF', transparent:true, opacity:.4, depthWrite:false})); st.position.set(rand(-1,1),.6+i*.35,rand(-1,1)); g.add(st); steam.push(st); }
+    placeLoc(g,'spring',3.4);
+  })();
+  (function(){ // hair salon
+    const g = new T.Group();
+    g.add(mesh(G.box(2.8,2.1,2.3), M('#DDE9FF'), 0,1.05,0));
+    const rf = mesh(G.cone(2.2,1.1,4), M('#6FA8FF'), 0,2.6,0); rf.rotation.y = Math.PI/4; g.add(rf);
+    g.add(mesh(G.box(.8,1.3,.1), M('#FFFFFF'), .6,.65,1.17)); g.add(mesh(G.box(.9,.8,.08), B('#FFF1C9'), -.6,1.05,1.17, false));
+    const pole = new T.Group(); pole.position.set(-1.25,0,1.35);
+    pole.add(mesh(G.cyl(.14,.14,1.3,12), M('#FFFFFF'), 0,1.0,0)); [0,1,2].forEach(i=>{ const band = mesh(G.cyl(.15,.15,.12,12), M(i%2?'#6FA8FF':'#FF5E6E'), 0,.55+i*.35,0); band.rotation.z = .35; pole.add(band); });
+    pole.add(mesh(G.sph(.16,10,8), M('#FFD23F'), 0,1.7,0)); g.add(pole);
+    placeLoc(g,'salon',3.6);
+  })();
+}
+function applyIsleLevel(){
+  const L = S.isleLevel || 0; if(!L) return;
+  buildExpansion();
+  ground.scale.set(1.5,1,1.5); sand.scale.set(1.4,1,1.4); foamK = 1.4;
+  scene.fog.near = 95; scene.fog.far = 220;
+  Object.assign(sun.shadow.camera, {left:-38,right:38,top:38,bottom:-38,far:120}); sun.shadow.camera.updateProjectionMatrix(); sun.shadow.mapSize.set(2048,2048); if(sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map = null; }
+  // the beach and the harbour move out to the new shore
+  LOCS.beach.x = 22.1; LOCS.beach.z = -22.1; LOC_G.beach.position.set(22.1,-.25,-22.1);
+  LOCS.pier.z = -31; LOC_G.pier.position.set(0,0,-31);
+  PIER_SPOT.set(0,0,-31.4); boat.position.set(2.2,-.55,-36.5);
+  if(visitor) visitor.p.root.position.copy(PIER_SPOT);
+}
+function checkExpand(){
+  if(S.isleLevel || residents.length < 8) return;
+  S.isleLevel = 1; applyIsleLevel();
+  if(selected) closeSheet();
+  cam.goal.set(0,0,0); cam.distGoal = 64; cam.pitchGoal = .95;
+  confetti(scene, new T.Vector3(0,0,0)); sfx.happy();
+  toast('🎉 小岛住满啦！小岛扩建了，现在最多可以住 16 个人', 'gold');
+  setTimeout(()=>toast('新地点解锁：🌷花田、♨️温泉、💇美发店'), 1800);
+  logNews('🏗️ 小岛扩建啦！外圈多了 8 块宅基地，还开了花田、温泉和美发店');
+  save();
+}
+function pickResident(title, tip, onPick){
+  const avail = residents.filter(r=>r.p.root.visible && r.state!=='home' && !inEvent(r));
+  openModal(modalHead(title) + `<p class="tip">${tip}</p><div class="grid-items">${avail.map(r=>`<button class="toy item" data-pr="${residents.indexOf(r)}">${faceDotHtml(r.d)}${esc(r.d.name)}</button>`).join('') || '<p class="tip">大家都在忙或者睡觉了。</p>'}</div>`, b=>{
+    if(b && b.dataset.pr) onPick(residents[+b.dataset.pr]);
+  });
+}
+function openSpring(){
+  pickResident('♨️ 温泉', '选一位居民去泡温泉（15 金币），心情会变得超好。', r=>{
+    if(S.coins < 15){ toast('金币不够啦'); return; }
+    S.coins -= 15; updateCoins(); closeModal();
+    goHang(r, 'spring'); r.d.mood = clamp(r.d.mood + 25, 0, 100); r.angryT = 0;
+    toast(`${r.d.name} 去泡温泉啦 ♨️`); logNews(`♨️ ${r.d.name} 舒舒服服地泡了个温泉`); save();
+  });
+}
+function openSalon(){
+  pickResident('💇 美发店', '选一位居民，换个发型、发色或者脸上的小细节。', r=>{ closeModal(); openEditor(r); draft.tab = 'hair'; renderEdOpts(); });
+}
+
 /* ---------------- time of day ---------------- */
 function isNight(){ return S.hour >= 21 || S.hour < 6; }
 function isFestival(){ return S.day % 3 === 0; }
@@ -1751,7 +1939,7 @@ function morning(){
       if(!hasSocialWant(a)){ a.d.want = {type:'propose', with:(a===r?pt:r).d.id}; extra.push(`💍 听说 ${a.d.name} 在偷偷准备求婚……`); }
     } else if(r.d.pType==='spouse' && S.day - r.d.pSince >= 1 && S.day - (r.d.lastBaby||-9) >= 3 && Math.random() < .45){
       const kid = haveBaby(r, pt);
-      extra.push(kid ? `👶 ${r.d.name} 和 ${pt.d.name} 的宝宝 ${kid.d.name} 出生了！` : `🍼 ${r.d.name} 和 ${pt.d.name} 想要个宝宝，可是小岛住满啦`);
+      extra.push(kid ? `👶 ${r.d.name} 和 ${pt.d.name} 家迎来了宝宝 ${kid.d.name}！` : `🍼 ${r.d.name} 和 ${pt.d.name} 想要个宝宝，可是小岛住满啦`);
     }
   });
   if(isFestival()) extra.push('🎆 今晚 7 点半，广场上空有烟花大会，大家都会来看！');
@@ -1805,7 +1993,7 @@ canvas.addEventListener('pointermove', e=>{
     if(dragMoved && mode==='room'){ roomYaw = clamp(roomYaw - (cur.x-prev.x)*.006, .15, 1.42); }
   } else if(pointers.size===2){
     const [a,b] = [...pointers.values()]; const d = Math.hypot(a.x-b.x, a.y-b.y);
-    if(pinchD>0 && mode==='island'){ cam.distGoal = null; cam.dist = clamp(cam.dist * pinchD/d, 12, 60); }
+    if(pinchD>0 && mode==='island'){ cam.distGoal = null; cam.dist = clamp(cam.dist * pinchD/d, 12, camMax()); }
     pinchD = d;
   }
 });
@@ -1816,7 +2004,7 @@ function endPointer(e){
 }
 canvas.addEventListener('pointerup', endPointer);
 canvas.addEventListener('pointercancel', e=>pointers.delete(e.pointerId));
-canvas.addEventListener('wheel', e=>{ e.preventDefault(); if(mode==='island'){ cam.distGoal = null; cam.dist = clamp(cam.dist * (1 + Math.sign(e.deltaY)*.1), 12, 60); } }, {passive:false});
+canvas.addEventListener('wheel', e=>{ e.preventDefault(); if(mode==='island'){ cam.distGoal = null; cam.dist = clamp(cam.dist * (1 + Math.sign(e.deltaY)*.1), 12, camMax()); } }, {passive:false});
 
 const ray = new T.Raycaster(), ndc = new T.Vector2();
 function onTap(x, y){
@@ -1888,7 +2076,7 @@ function renderSheet(){
   el.innerHTML = `
     <div class="sheet-head">
       <div class="face-dot" ${hairDot(d)}></div>
-      <div><h2>${esc(d.name)}</h2><div class="tags"><span class="tag">${persName(d)}</span><span class="tag">${d.level} 级</span><span class="tag">🎂 ${bdayText(d)}</span>${d.nick?`<span class="tag">外号「${esc(d.nick)}」</span>`:''}<span class="tag">最爱 ${FOODS[d.fav].e}</span><span class="tag">不爱 ${FOODS[d.dislike].e}</span>${pt?`<span class="tag">${d.pType==='spouse'?'💍 夫妻':'💑 恋人'} ${esc(pt.d.name)}</span>`:''}${d.kid?'<span class="tag">👶 宝宝</span>':''}</div></div>
+      <div><h2>${esc(d.name)}</h2><div class="tags"><span class="tag">${gOf(r)==='f' ? '👧 女生' : '👦 男生'}</span><span class="tag">${persName(d)}</span><span class="tag">${d.level} 级</span><span class="tag">🎂 ${bdayText(d)}</span>${d.nick?`<span class="tag">外号「${esc(d.nick)}」</span>`:''}<span class="tag">最爱 ${FOODS[d.fav].e}</span><span class="tag">不爱 ${FOODS[d.dislike].e}</span>${pt?`<span class="tag">${d.pType==='spouse'?'💍 夫妻':'💑 恋人'} ${esc(pt.d.name)}</span>`:''}${d.kid?'<span class="tag">👶 宝宝</span>':''}</div></div>
       <button class="toy close" data-close="1" aria-label="关闭">×</button>
     </div>
     <div class="bars">
@@ -2030,7 +2218,7 @@ function openShop(tab){
 function openFriends(confirming){
   const cards = residents.map(r=>{
     const links = residents.filter(o=>o!==r).map(o=>({o, v:r.d.friends[o.d.id]||0})).sort((a,b)=>b.v-a.v);
-    return `<div class="fr"><div class="face-dot" ${hairDot(r.d)}></div><div><div class="who">${esc(r.d.name)}</div><div class="meta">${r.d.kid?'👶 宝宝 · ':''}${persName(r.d)} · ${r.d.level} 级 · 🎂 ${bdayText(r.d)} · 口头禅「${esc(r.d.catch||'')}」 · 心情 ${Math.round(r.d.mood)}</div>
+    return `<div class="fr"><div class="face-dot" ${hairDot(r.d)}></div><div><div class="who">${esc(r.d.name)}</div><div class="meta">${r.d.kid?'👶 宝宝 · ':''}${gOf(r)==='f' ? '♀' : '♂'} ${persName(r.d)} · ${r.d.level} 级 · 🎂 ${bdayText(r.d)} · 口头禅「${esc(r.d.catch||'')}」 · 心情 ${Math.round(r.d.mood)}</div>
       <div class="links">${links.length ? links.map(({o,v})=>{ const fl = friendLevel(v), rel = relName(r,o); if(rel) return `<span class="lk r3">${rel} · ${esc(o.d.name)}</span>`; return `<span class="lk r${fl.rank}">${fl.rank>=2?'💖 ':fl.rank===1?'🤝 ':''}${esc(o.d.name)} · ${fl.n}</span>`; }).join('') : '<span class="lk">还没有邻居</span>'}</div></div></div>`;
   }).join('');
   const html = `<div class="modal-head"><h2>好朋友</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>
@@ -2113,14 +2301,14 @@ function openAlbum(){
 let editorOpen = false, draft = null, pvRenderer = null, pvScene = null, pvCam = null, pvModel = null, editing = null;
 function openEditor(r){
   editing = r || null;
-  if(r){ const d = r.d; draft = {name:d.name, look:Object.assign({}, d.look), pers:d.pers, traits:Object.assign({}, d.traits||traitsFor(d.pers)), outfit:d.outfit, catch:d.catch||'', voice:Object.assign({}, d.voice||newVoice()), slot:d.slot}; sfx.pop(); renderEditor(); return; }
+  if(r){ const d = r.d; draft = {tab:'basic', name:d.name, look:Object.assign({}, d.look), pers:d.pers, traits:Object.assign({}, d.traits||traitsFor(d.pers)), likes:d.likes||'opp', outfit:d.outfit, catch:d.catch||'', voice:Object.assign({}, d.voice||newVoice()), slot:d.slot}; sfx.pop(); renderEditor(); return; }
   const used = new Set(residents.map(r=>r.d.slot));
-  const free = SLOTS.map((_,i)=>i).filter(i=>!used.has(i));
-  if(!free.length){ toast('小岛住满啦（最多 8 位居民）'); return; }
+  const free = SLOTS.slice(0, slotCap()).map((_,i)=>i).filter(i=>!used.has(i));
+  if(!free.length){ toast(`小岛住满啦（最多 ${slotCap()} 位居民）`); return; }
   sfx.pop();
   const usedNames = new Set(residents.map(r=>r.d.name));
-  const tr = {move:ri(0,8), talk:ri(0,8), social:ri(0,8), mind:ri(0,8)};
-  draft = {name: pick(NAMES.filter(n=>!usedNames.has(n)).concat(['新朋友'])), look:newLook(), traits:tr, pers:persFromTraits(tr), outfit:'tee', slot:free[0], catch:pick(CATCHES), voice:newVoice()};
+  const tr = {move:ri(0,8), talk:ri(0,8), social:ri(0,8), mind:ri(0,8)}, voice = newVoice();
+  draft = {tab:'basic', name: pick(NAMES.filter(n=>!usedNames.has(n)).concat(['新朋友'])), look:newLook(voice.g), traits:tr, pers:persFromTraits(tr), likes:'opp', outfit:'tee', slot:free[0], catch:pick(CATCHES), voice};
   renderEditor(); editorOpen = true;
 }
 function renderEditor(){
@@ -2137,21 +2325,26 @@ function voiceChips(){
   if(list.length < 2) return '';
   return `<div class="sw-row" style="margin-top:8px"><button class="chip ${!draft.voice.name?'on':''}" data-vname="">自动</button>${list.slice(0,10).map((v,i)=>`<button class="chip ${draft.voice.name===v.name?'on':''}" data-vname="${esc(v.name)}">${esc(voiceLabel(v,i))}</button>`).join('')}</div>`;
 }
+const ED_TABS = [['basic','基本'],['face','脸'],['hair','发型'],['body','身材'],['voice','声音']];
 function renderEdOpts(){
-  const L = draft.look;
+  const L = draft.look, tab = draft.tab || 'basic';
   const sw = (key, arr) => arr.map(c=>`<button class="sw ${L[key]===c?'on':''}" style="background:${c}" data-k="${key}" data-v="${c}" aria-label="${c}"></button>`).join('');
-  const chips = (key, arr, obj) => arr.map(o=>`<button class="chip ${(obj?draft:L)[key]===o.id?'on':''}" data-k="${key}" data-v="${o.id}" ${obj?'data-top="1"':''}>${o.n}</button>`).join('');
-  $('#edOpts').innerHTML = `
-        <div class="opt"><label for="nameInput">名字</label><div class="name-row"><input id="nameInput" maxlength="6" value="${esc(draft.name)}" autocomplete="off"></div></div>
-        <div class="opt"><label for="catchInput">口头禅</label><div class="name-row"><input id="catchInput" maxlength="5" value="${esc(draft.catch)}" autocomplete="off"></div></div>
-        <div class="opt"><span class="lb">性别</span><div class="sw-row"><button class="chip ${draft.voice.g==='f'?'on':''}" data-gender="f">女生</button><button class="chip ${draft.voice.g==='m'?'on':''}" data-gender="m">男生</button></div></div>
-        <div class="opt"><span class="lb">声音</span><div class="voice-row"><label>低<input type="range" id="pitchIn" min="0.5" max="2" step="0.1" value="${draft.voice.pitch}">高</label><label>慢<input type="range" id="rateIn" min="0.6" max="1.5" step="0.1" value="${draft.voice.rate}">快</label><button class="toy pill-btn" data-try="1">🔈 试听</button></div>${voiceChips()}</div>
-        <div class="opt"><span class="lb">肤色</span><div class="sw-row">${sw('skin',SKINS)}</div></div>
-        <div class="opt"><span class="lb">发型</span><div class="sw-row">${chips('hair',HAIRS)}</div></div>
-        <div class="opt"><span class="lb">发色</span><div class="sw-row">${sw('hairColor',HAIR_COLORS)}</div></div>
-        <div class="opt"><span class="lb">衣服</span><div class="sw-row">${sw('shirt',SHIRTS)}</div></div>
-        <div class="opt"><span class="lb">眼睛</span><div class="sw-row">${chips('eyes',EYES)}</div></div>
-        <div class="opt"><span class="lb">性格</span>${TRAIT_AXES.map(([k,l,rr])=>`<div class="trait"><span>${l}</span><input type="range" min="0" max="8" step="1" id="tr_${k}" value="${draft.traits[k]}" aria-label="${l}到${rr}"><span>${rr}</span></div>`).join('')}<div class="pers-name" id="persOut">${persName({pers:draft.pers, traits:draft.traits})}</div></div>`;
+  const chips = (key, arr, def) => arr.map(o=>`<button class="chip ${(L[key]||def)===o.id?'on':''}" data-k="${key}" data-v="${o.id}">${o.n}</button>`).join('');
+  const opt = (label, inner) => `<div class="opt"><span class="lb">${label}</span><div class="sw-row">${inner}</div></div>`;
+  const slider = (id, l, r, v) => `<div class="trait"><span>${l}</span><input type="range" min="0" max="8" step="1" id="${id}" value="${v}" aria-label="${l}到${r}"><span>${r}</span></div>`;
+  let h = `<div class="tabs ed-tabs">${ED_TABS.map(([k,n])=>`<button class="toy tab ${k===tab?'on':''}" data-etab="${k}">${n}</button>`).join('')}</div>`;
+  if(tab==='basic') h += `
+    <div class="opt"><label for="nameInput">名字</label><div class="name-row"><input id="nameInput" maxlength="6" value="${esc(draft.name)}" autocomplete="off"></div></div>
+    ${opt('性别', `<button class="chip ${draft.voice.g==='f'?'on':''}" data-gender="f">女生</button><button class="chip ${draft.voice.g==='m'?'on':''}" data-gender="m">男生</button>`)}
+    ${opt('恋爱对象', [['opp','异性'],['same','同性'],['any','都可以']].map(([k,n])=>`<button class="chip ${draft.likes===k?'on':''}" data-likes="${k}">${n}</button>`).join(''))}
+    <div class="opt"><label for="catchInput">口头禅</label><div class="name-row"><input id="catchInput" maxlength="5" value="${esc(draft.catch)}" autocomplete="off"></div></div>
+    <div class="opt"><span class="lb">性格</span>${TRAIT_AXES.map(([k,l,rr])=>slider('tr_'+k, l, rr, draft.traits[k])).join('')}<div class="pers-name" id="persOut">${persName({pers:draft.pers, traits:draft.traits})}</div></div>`;
+  if(tab==='face') h += opt('肤色', sw('skin',SKINS)) + opt('眼睛', chips('eyes',EYES,'round')) + opt('眉毛', chips('brows',BROWS,'normal'))
+    + opt('鼻子', chips('nose',NOSES,'dot')) + opt('嘴巴', chips('mouth',MOUTHS,'smile')) + opt('脸颊', chips('cheek',CHEEKS,'blush')) + opt('胡子', chips('beard',BEARDS,'none'));
+  if(tab==='hair') h += opt('发型', chips('hair',HAIRS,'short')) + opt('发色', sw('hairColor',HAIR_COLORS));
+  if(tab==='body') h += `<div class="opt"><span class="lb">身材</span>${slider('lk_height','矮','高',L.height ?? 4)}${slider('lk_build','瘦','壮',L.build ?? 4)}</div>` + opt('衣服颜色', sw('shirt',SHIRTS));
+  if(tab==='voice') h += `<div class="opt"><span class="lb">声音</span><div class="voice-row"><label>低<input type="range" id="pitchIn" min="0.5" max="2" step="0.1" value="${draft.voice.pitch}">高</label><label>慢<input type="range" id="rateIn" min="0.6" max="1.5" step="0.1" value="${draft.voice.rate}">快</label><button class="toy pill-btn" data-try="1">🔈 试听</button></div>${voiceChips()}</div>`;
+  $('#edOpts').innerHTML = h;
 }
 function editorClick(b, e){
     if(!b){ const id = e.target.id;
@@ -2159,19 +2352,23 @@ function editorClick(b, e){
       if(id==='catchInput') draft.catch = e.target.value;
       if(id==='pitchIn') draft.voice.pitch = +e.target.value;
       if(id==='rateIn') draft.voice.rate = +e.target.value;
+      if(id==='lk_height' || id==='lk_build'){ draft.look[id.slice(3)] = +e.target.value; setupPreview(); }
       if(id.startsWith('tr_')){ draft.traits[id.slice(3)] = +e.target.value; draft.pers = persFromTraits(draft.traits); const po = $('#persOut'); if(po) po.textContent = persName({pers:draft.pers, traits:draft.traits}); }
       return; }
+    if(b.dataset.etab){ draft.tab = b.dataset.etab; sfx.pop(); renderEdOpts(); return; }
+    if(b.dataset.likes){ draft.likes = b.dataset.likes; sfx.pop(); renderEdOpts(); return; }
     if(b.dataset.gender){
       const g = b.dataset.gender, v = draft.voice; v.g = g; v.name = null;
       if(g==='f' && v.pitch < 1.05) v.pitch = Math.round(rand(1.1,1.5)*10)/10;
       if(g==='m' && v.pitch > 1.1) v.pitch = Math.round(rand(.75,1.05)*10)/10;
-      renderEdOpts(); speakWith(v, `我是${draft.name||'新朋友'}，${draft.catch||''}`); return;
+      if(g==='f') draft.look.beard = 'none';
+      renderEdOpts(); setupPreview(); speakWith(v, `我是${draft.name||'新朋友'}，${draft.catch||''}`); return;
     }
     if(b.dataset.vname !== undefined){ draft.voice.name = b.dataset.vname || null; renderEdOpts(); speakWith(draft.voice, `我是${draft.name||'新朋友'}，${draft.catch||''}`); return; }
     if(b.dataset.try){ speakWith(draft.voice, `我是${draft.name||'新朋友'}，${pick(TALK[draft.pers])}，${draft.catch||''}`); return; }
     if(b.dataset.go && editing){
       const r = editing, d = r.d; editing = null;
-      d.name = ((draft.name||'').trim() || d.name).slice(0,6); d.look = draft.look; d.pers = draft.pers; d.traits = draft.traits; r.speed = 1.7 + d.traits.move*.14; d.catch = (draft.catch||'').trim().slice(0,5) || d.catch; d.voice = draft.voice;
+      d.name = ((draft.name||'').trim() || d.name).slice(0,6); d.look = draft.look; d.pers = draft.pers; d.traits = draft.traits; d.likes = draft.likes; r.speed = 1.7 + d.traits.move*.14; d.catch = (draft.catch||'').trim().slice(0,5) || d.catch; d.voice = draft.voice;
       closeModal(); rebuildChar(r); buildHouse(r); save(); sfx.happy();
       toast(`${d.name} 换了新造型！`, 'gold'); cam.goal.copy(r.p.root.position);
       if(r.state!=='home') beHappy(r,'✨',1.8);
@@ -2180,14 +2377,15 @@ function editorClick(b, e){
     }
     if(b.dataset.go){
       const name = (draft.name||'').trim() || '新朋友';
-      const d = makeResData(name.slice(0,6), draft.look, draft.pers, draft.slot); d.traits = draft.traits; d.catch = (draft.catch||'').trim().slice(0,5) || pick(CATCHES); d.voice = draft.voice;
+      const d = makeResData(name.slice(0,6), draft.look, draft.pers, draft.slot); d.traits = draft.traits; d.likes = draft.likes; d.catch = (draft.catch||'').trim().slice(0,5) || pick(CATCHES); d.voice = draft.voice;
       closeModal(); const r = addResident(d, true);
       save(); sfx.happy(); toast(`欢迎 ${d.name} 搬进心心小岛！`, 'gold'); logNews(`🏠 ${d.name} 搬进了小岛`);
       cam.goal.copy(r.p.root.position); confetti(scene, r.p.root.position); if(!isNight()) beHappy(r,'👋',2);
+      checkExpand();
       return;
     }
-    if(b.dataset.rand){ draft.look = newLook(); draft.traits = {move:ri(0,8), talk:ri(0,8), social:ri(0,8), mind:ri(0,8)}; draft.pers = persFromTraits(draft.traits); draft.catch = pick(CATCHES); }
-    else if(b.dataset.k){ if(b.dataset.top) draft[b.dataset.k] = b.dataset.v; else draft.look[b.dataset.k] = b.dataset.v; }
+    if(b.dataset.rand){ draft.look = newLook(draft.voice.g); draft.traits = {move:ri(0,8), talk:ri(0,8), social:ri(0,8), mind:ri(0,8)}; draft.pers = persFromTraits(draft.traits); draft.catch = pick(CATCHES); }
+    else if(b.dataset.k){ draft.look[b.dataset.k] = b.dataset.v; }
     sfx.pop(); renderEdOpts(); setupPreview();
 }
 function setupPreview(){
@@ -2403,7 +2601,8 @@ function frame(dt, t){
     placeCamera();
     ring.visible = !!selected && selected.p.root.visible; if(ring.visible){ ring.position.x = selected.p.root.position.x; ring.position.z = selected.p.root.position.z; ring.rotation.z += dt; }
     clouds.forEach(c=>{ c.userData.a += c.userData.sp*dt; c.position.x = Math.cos(c.userData.a)*c.userData.r; c.position.z = Math.sin(c.userData.a)*c.userData.r; });
-    foam.scale.setScalar(1 + Math.sin(t*1.2)*.012);
+    foam.scale.setScalar(foamK*(1 + Math.sin(t*1.2)*.012));
+    steam.forEach((st,i)=>{ st.position.y += dt*.35; st.material.opacity = .4*(1 - (st.position.y-.5)/2); if(st.position.y > 2.5){ st.position.set(rand(-1,1),.5,rand(-1,1)); } });
     const f = window.__fountain; f.userData.top.position.y = 2.2 + Math.sin(t*4)*.05;
     drops.forEach((d,i)=>{ d.t = (d.t + dt*.9) % 1; const a = i/drops.length*Math.PI*2; const r = d.t*1.5; d.m.position.set(Math.cos(a)*r, 2.3 + d.t*1.2 - d.t*d.t*2.4, Math.sin(a)*r); });
     renderer.render(scene, camera);
@@ -2419,10 +2618,11 @@ S.inv = Object.assign({food:{},acc:{},furn:{},cloth:{}}, S.inv||{});
 if(!S.log) S.log = [];
 S.residents.forEach(d=>{ if(!d.catch) d.catch = pick(CATCHES); if(d.partner===undefined) d.partner = null; if(!d.voice) d.voice = newVoice(); if(d.voice.seed==null) d.voice.seed = Math.random(); if(!d.voice.g){ d.voice.g = guessGender(d); if(d.voice.g==='m' && d.voice.pitch > 1.1) d.voice.pitch = Math.round(rand(.75,1.05)*10)/10; if(d.voice.g==='f' && d.voice.pitch < 1.05) d.voice.pitch = Math.round(rand(1.1,1.5)*10)/10; } if(!d.traits){ d.traits = traitsFor(d.pers); } if(!d.bday) d.bday = ri(1,YEAR); if(!d.outfit) d.outfit = 'tee'; if(!d.songs) d.songs = [songCopy(pick(SONG_BOOK))]; });
 if(S.visitor && (S.hour >= 20 || S.hour < 6)) S.visitor = null;
+if(S.isleLevel) applyIsleLevel();
 S.residents.forEach(d=>addResident(d,false));
 spawnVisitor();
 updateCoins(); updateNewsDot(); onResize(); applySky(); loop();
-if(/[?&]debug\b/.test(location.search)) window.__isle = {get S(){ return S; }, get residents(){ return residents; }, get ev(){ return ev; }, get show(){ return show; }, get visitor(){ return visitor; }, quarrel, rebuildChar, cam, music(){ return {mStep, musicOn, soundOn, ctx: actx && actx.state}; }, voices(){ return zhVoices.map(v=>v.name+" | "+v.lang); }, pickVoice, speechText, natPitch, startParty, startConcert, openConcert, openAsk, openVisitor, spawnVisitor, makeVisitor, applyLv, openPark, openCafe, openLoc, songSeq, openShop, openRPS, takePhoto, openEditor, step(secs){ for(let i=0;i<secs*30;i++){ simT += 1/30; frame(1/30, simT); } }, select, startEvent, morning, enterRoom, openNews, showDream, byId};
+if(/[?&]debug\b/.test(location.search)) window.__isle = {get S(){ return S; }, get residents(){ return residents; }, get ev(){ return ev; }, get show(){ return show; }, get visitor(){ return visitor; }, quarrel, rebuildChar, cam, checkExpand, applyIsleLevel, canRomance, parentsLine, music(){ return {mStep, musicOn, soundOn, ctx: actx && actx.state}; }, voices(){ return zhVoices.map(v=>v.name+" | "+v.lang); }, pickVoice, speechText, natPitch, startParty, startConcert, openConcert, openAsk, openVisitor, spawnVisitor, makeVisitor, applyLv, openPark, openCafe, openLoc, songSeq, openShop, openRPS, takePhoto, openEditor, step(secs){ for(let i=0;i<secs*30;i++){ simT += 1/30; frame(1/30, simT); } }, select, startEvent, morning, enterRoom, openNews, showDream, byId};
 setTimeout(()=>toast('点一点小人，看看他们想要什么吧！'), 600);
 setTimeout(()=>toast('点房子可以进屋装扮哦'), 3800);
 setTimeout(()=>toast('居民会交朋友、吵架、谈恋爱……多留意他们的心愿 💘'), 7000);
