@@ -33,6 +33,13 @@ button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 .coins{display:flex;align-items:center;gap:6px;font-family:var(--display);font-size:22px;padding:6px 14px;font-variant-numeric:tabular-nums}
 .coin{width:20px;height:20px;border-radius:50%;background:var(--sun);border:3px solid var(--sun-d);box-sizing:border-box;display:inline-block}
 .icon-btn{width:48px;height:48px;font-size:22px;display:grid;place-items:center;padding:0;position:relative}
+.time-ctl{display:flex;gap:6px;margin-top:6px}
+.tbtn{font-size:14px;white-space:nowrap;min-width:38px;padding:2px 8px 3px;border:2px solid var(--ink);border-radius:10px;background:#fff;box-shadow:0 2px 0 var(--ink)}
+.tbtn.on{background:var(--sun)}
+#pauseBar{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:25;background:var(--panel);border:3px solid var(--ink);border-radius:22px;box-shadow:0 6px 0 var(--ink);padding:16px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;font-size:15px;text-align:center;width:min(360px,calc(100% - 32px));box-sizing:border-box}
+#pauseBar b{font-family:var(--display);font-weight:400;font-size:26px}
+#restartAsk{display:flex;flex-direction:column;gap:10px;align-items:center;color:var(--ink-soft)}
+#restartAsk[hidden]{display:none}
 .dot{position:absolute;top:-5px;right:-5px;width:14px;height:14px;border-radius:50%;background:var(--coral);border:2px solid var(--ink)}
 .say{margin:10px 0 0;background:#fff;border:2px solid var(--line);border-radius:14px;padding:7px 12px;font-size:15px;position:relative}
 .want-acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:-4px 0 12px;font-size:14px;color:var(--ink-soft)}
@@ -223,7 +230,7 @@ textarea.text-in{width:100%;box-sizing:border-box;min-height:100px;resize:vertic
 <canvas id="game" aria-label="3D 小岛"></canvas>
 
 <div id="hud">
-  <div class="brand"><h1>心心小岛</h1><div class="clock" id="clock">第1天 · 早上 08:00</div></div>
+  <div class="brand"><h1>心心小岛</h1><div class="clock" id="clock">第1天 · 早上 08:00</div><div class="time-ctl"><button class="tbtn" id="pauseBtn" aria-label="暂停" title="暂停">⏸</button><button class="tbtn" id="speedBtn" aria-label="游戏速度：1倍" title="切换 1 倍 / 2 倍速度">1×</button></div></div>
   <div class="hud-right">
     <div class="coins toy" aria-label="金币"><span class="coin"></span><span id="coinNum">0</span></div>
     <button class="toy icon-btn" id="newsBtn" aria-label="小岛新闻">📰<span class="dot" id="newsDot" hidden></span></button>
@@ -233,6 +240,7 @@ textarea.text-in{width:100%;box-sizing:border-box;min-height:100px;resize:vertic
 </div>
 
 <div id="toasts"></div>
+<div id="pauseBar" hidden><b>⏸ 已暂停</b><div class="row-btns"><button class="toy pill-btn hot" id="resumeBtn">▶ 继续</button><button class="toy pill-btn" id="restartBtn">🔄 重新开始</button></div><div id="restartAsk" hidden><span>真的要重新开始吗？小岛会回到第一天，所有居民和宠物都会不见。</span><div class="row-btns"><button class="toy pill-btn" id="restartYes" style="background:var(--coral);color:#fff">确定重来</button><button class="toy pill-btn" id="restartNo">再想想</button></div></div></div>
 <div id="karaoke" hidden></div>
 
 <div id="dock">
@@ -339,7 +347,8 @@ const TALK_SUB = {
   gentle:['慢慢来，不着急','累了就休息一下吧','咦，我刚才要干嘛来着','我在想云朵是什么味道'],
   cool:['安静一点比较好','我刚看完一本书','一个人也挺自在','……这很酷，对吧']
 };
-const YEAR = 10; // one island year = 10 days
+const YEAR = 10;
+const KID_DAYS = 10; // days before a baby grows up // one island year = 10 days
 const GENRES = {
   pop:{n:'流行',bpm:132,wave:'triangle',scale:[0,2,4,7,9,12,14,16]},
   rock:{n:'摇滚',bpm:160,wave:'sawtooth',scale:[0,3,5,7,10,12,15,17]},
@@ -1427,7 +1436,7 @@ function quarrel(a,b){
   addFriend(a, b, -12);
   a.p.root.rotation.y += Math.PI; b.p.root.rotation.y += Math.PI; sfx.boing();
   if(a.d.partner===b.d.id && a.d.pType==='lover' && ((a.d.friends[b.d.id]||0) < 60 || Math.random() < .3)){ breakUp(a, b); return; }
-  [a,b].forEach(x=>{ const o = x===a ? b : a; x.d.mood = clamp(x.d.mood-15,0,100); x.angryT = 3.5; x.d.want = {type:'makeup', with:o.d.id}; });
+  [a,b].forEach(x=>{ const o = x===a ? b : a; x.d.mood = clamp(x.d.mood-15,0,100); x.angryT = 3.5; x.d.want = {type:'makeup', with:o.d.id, since:S.day}; });
   toast(`${a.d.name} 和 ${b.d.name} 吵架了！💢`); logNews(`💢 ${a.d.name} 和 ${b.d.name} 吵了一架`); save();
 }
 function breakUp(a, b){
@@ -1477,7 +1486,8 @@ function endChat(r, natural){
     if((r.d.friends[o.d.id]||0) >= 15){ const mid = r.p.root.position.clone().add(o.p.root.position).multiplyScalar(.5); mid.y = 2.6; burst(scene, mid, r.d.partner===o.d.id ? '💕' : '❤️', 2, .3); }
     // made up on their own
     const mk = (x,y)=>x.d.want && x.d.want.type==='makeup' && x.d.want.with===y.d.id;
-    if(mk(r,o) || mk(o,r)){ if(mk(r,o)) r.d.want = null; if(mk(o,r)) o.d.want = null; toast(`${r.d.name} 和 ${o.d.name} 自己和好啦`); logNews(`🤝 ${r.d.name} 和 ${o.d.name} 聊着聊着就和好了`); }
+    const cooled = x=>!x.d.want || x.d.want.since==null || S.day - x.d.want.since >= 2;
+    if((mk(r,o) || mk(o,r)) && cooled(r) && cooled(o) && Math.random() < .3){ if(mk(r,o)) r.d.want = null; if(mk(o,r)) o.d.want = null; toast(`${r.d.name} 和 ${o.d.name} 自己和好啦`); logNews(`🤝 ${r.d.name} 和 ${o.d.name} 聊着聊着就和好了`); }
     // a crush
     if((r.d.friends[o.d.id]||0) >= 80 && canRomance(r,o) && Math.random() < .3){
       const [a,b] = Math.random()<.5 ? [r,o] : [o,r];
@@ -1500,7 +1510,8 @@ function decide(r){
   if(roll < chatty){
     const pt = r.d.partner && byId(r.d.partner);
     if(pt && isFree(pt) && Math.random() < .5){ r.state='walk'; r.target = pt; r.dest = pt.p.root.position.clone(); r.onArrive = 'chat'; return; }
-    const others = residents.filter(o=>o!==r && isFree(o));
+    const mad = (x,y)=>x.d.want && x.d.want.type==='makeup' && x.d.want.with===y.d.id;
+    const others = residents.filter(o=>o!==r && isFree(o) && !mad(r,o) && !mad(o,r));
     if(others.length){ r.state='walk'; r.target = pick(others); r.dest = r.target.p.root.position.clone(); r.onArrive = 'chat'; return; }
   }
   if(roll < .8){ r.state='walk'; r.dest = randomSpot(); r.onArrive = null; r.target = null; return; }
@@ -1681,6 +1692,7 @@ function resolveEvent(){
   const {type, a, b, style} = ev, fv = a.d.friends[b.d.id]||0, mid = EV_SPOT.clone().setY(2.8);
   const clearPair = ()=>[a,b].forEach(x=>{ const o = x===a ? b : a; if(x.d.want && SOCIAL.includes(x.d.want.type) && x.d.want.with===o.d.id) x.d.want = null; });
   const joy = (e1, e2)=>{ a.pose = b.pose = 'happy'; a.scriptBubble = e1; b.scriptBubble = e2; a.d.mood = b.d.mood = 100; sfx.happy(); };
+  const keepW = [a.d.want, b.d.want];
   clearPair();
   if(type==='love' && ev.rival){
     const c = ev.rival, sA = fv + (CONFESS[style].like.includes(b.d.pers) ? 15 : 0) + rand(0,30), sC = (c.d.friends[b.d.id]||0) + 8 + rand(0,30);
@@ -1727,9 +1739,18 @@ function resolveEvent(){
       logNews(`💍 ${a.d.name} 向 ${b.d.name} 求婚，被温柔地婉拒了`);
     }
   } else {
-    addFriend(a, b, 22); joy('🤝','🤝'); burst(scene, mid, '✨', 8, 1); addCoins(30);
-    toast(`${a.d.name} 和 ${b.d.name} 和好啦！+30 金币`, 'gold');
-    logNews(`🤝 在你的帮助下，${a.d.name} 和 ${b.d.name} 和好如初`);
+    const days = S.day - Math.min(...keepW.map(w=>(w && w.since!=null) ? w.since : S.day));
+    const pOk = clamp(.25 + fv/250 + (compat(a,b)-1)*.08 + Math.min(2, days)*.15, .15, .85);
+    if(Math.random() < pOk){
+      addFriend(a, b, 15); joy('🤝','🤝'); burst(scene, mid, '✨', 8, 1); addCoins(30);
+      toast(`${a.d.name} 和 ${b.d.name} 和好啦！+30 金币`, 'gold');
+      logNews(`🤝 在你的帮助下，${a.d.name} 和 ${b.d.name} 和好如初`);
+    } else {
+      [a,b].forEach((x,i)=>{ x.d.want = keepW[i] || {type:'makeup', with:(x===a?b:a).d.id, since:S.day}; x.d.want.tried = S.day; x.d.mood = clamp(x.d.mood-5,0,100); });
+      addFriend(a, b, -4); a.scriptBubble = '😤'; b.scriptBubble = '😤'; sfx.boing();
+      toast(`${a.d.name} 和 ${b.d.name} 还在生气，没能和好……明天再试试吧`);
+      logNews(`😤 ${a.d.name} 和 ${b.d.name} 见了面还是没和好`);
+    }
   }
 }
 function haveBaby(a, b){
@@ -2289,7 +2310,8 @@ function morning(){
   residents.forEach(r=>{ if(r.state==='home'){ r.state='idle'; r.timer=rand(.2,2); r.p.root.position.copy(doorPoint(r.d.slot)); r.p.root.visible = true; } });
   S.news = {day:S.day-1, items:(S.log||[]).slice()}; S.log = [];
   const extra = [];
-  residents.forEach(r=>{ if(r.d.kid && S.day - r.d.bornDay >= 3){ r.d.kid = false; r.p.root.scale.setScalar(1.25); extra.push(`🎓 ${r.d.name} 长大啦，成了小岛上的大人！`); } });
+  residents.forEach(r=>{ const w = r.d.want; if(w && w.type==='makeup' && w.since!=null && S.day - w.since >= 5){ const o = byId(w.with); r.d.want = null; if(o && o.d.want && o.d.want.type==='makeup' && o.d.want.with===r.d.id){ o.d.want = null; extra.push(`🤝 ${r.d.name} 和 ${o.d.name} 过了好几天，终于慢慢和好了`); } } });
+  residents.forEach(r=>{ if(r.d.kid && S.day - r.d.bornDay >= KID_DAYS){ r.d.kid = false; r.p.root.scale.setScalar(1.25); extra.push(`🎓 ${r.d.name} 长大啦，成了小岛上的大人！`); } });
   const seen = new Set();
   residents.slice().forEach(r=>{
     const pt = r.d.partner && byId(r.d.partner); if(!pt || seen.has(r)) return; seen.add(pt);
@@ -2485,6 +2507,7 @@ $('#sheet').addEventListener('click', e=>{
     renderSheet(); return;
   }
   if(b.dataset.undress){ if(d.outfit && d.outfit!=='tee'){ S.inv.cloth[d.outfit] = (S.inv.cloth[d.outfit]||0) + 1; d.outfit = 'tee'; rebuildChar(r); save(); renderSheet(); } return; }
+  if(b.dataset.makeup && d.want && d.want.tried===S.day){ toast(`${d.name} 还在气头上，明天再试试吧`); return; }
   if(b.dataset.confess || b.dataset.propose || b.dataset.makeup){
     const o = d.want && d.want.with && byId(d.want.with); if(!o) return;
     sfx.pop(); startEvent(b.dataset.confess ? 'love' : b.dataset.propose ? 'propose' : 'makeup', r, o, b.dataset.confess); return;
@@ -2968,11 +2991,13 @@ soundIcon();
 
 /* ---------------- world lifecycle ---------------- */
 function resetWorld(state){
+  if(S && S.isleLevel && !state.isleLevel){ try{ localStorage.setItem('xx_save', JSON.stringify(state)); }catch(e){} location.reload(); return; } // shrinking the island back is simplest with a fresh page
   residents.forEach(r=>scene.remove(r.p.root)); residents = [];
+  pets.forEach(pw=>scene.remove(pw.p.root)); pets.length = 0;
   Object.values(houses).forEach(h=>scene.remove(h)); for(const k in houses) delete houses[k];
   if(show){ if(show.cake) scene.remove(show.cake); show = null; karaoke(null,-1); musicHold = false; }
   selected = null; ev = null; cam.distGoal = null; $('#sheet').hidden = true; if(mode==='room') leaveRoom();
-  S = state; S.residents.forEach(d=>addResident(d,false)); spawnVisitor(); updateCoins(); updateNewsDot(); applySky(); save();
+  S = state; S.residents.forEach(d=>addResident(d,false)); (S.pets||[]).forEach(pd=>addPet(pd)); spawnVisitor(); updateCoins(); updateNewsDot(); applySky(); save();
 }
 
 function onResize(){
@@ -3209,10 +3234,32 @@ function petEdClick(b, e){
 /* ---------------- loop ---------------- */
 const clock = new T.Clock(); let acc = 0, saveT = 0, barT = 0;
 let simT = 0, petT = 0;
+let gameSpeed = 1, paused = false;
 function loop(){
   requestAnimationFrame(loop);
-  const dt = Math.min(clock.getDelta(), .05); simT += dt; frame(dt, simT);
+  loopStep(Math.min(clock.getDelta(), .05));
 }
+function loopStep(raw){
+  const dt = paused ? 0 : raw*gameSpeed;
+  simT += dt; frame(dt, simT);
+  if(paused) renderPaused(raw);
+}
+// while paused the world stands still, but the camera can still be dragged around
+function renderPaused(raw){
+  if(mode==='island'){ cam.target.lerp(cam.goal, Math.min(1, raw*3)); placeCamera(); renderer.render(scene, camera); }
+}
+function setPaused(v){
+  paused = v; $('#pauseBar').hidden = !v; $('#restartAsk').hidden = true;
+  $('#pauseBtn').textContent = v ? '▶' : '⏸'; $('#pauseBtn').setAttribute('aria-label', v ? '继续' : '暂停'); $('#pauseBtn').classList.toggle('on', v);
+  try{ if(v && window.speechSynthesis) speechSynthesis.cancel(); }catch(e){}
+  musicHold = v || !!show;
+}
+$('#pauseBtn').onclick = ()=>{ sfx.pop(); setPaused(!paused); };
+$('#resumeBtn').onclick = ()=>{ sfx.pop(); setPaused(false); };
+$('#speedBtn').onclick = ()=>{ gameSpeed = gameSpeed===1 ? 2 : 1; $('#speedBtn').textContent = gameSpeed===2 ? '2×' : '1×'; $('#speedBtn').setAttribute('aria-label', '游戏速度：' + gameSpeed + '倍'); $('#speedBtn').classList.toggle('on', gameSpeed===2); sfx.pop(); toast(gameSpeed===2 ? '⏩ 时间加快到 2 倍' : '▶ 恢复正常速度'); };
+$('#restartBtn').onclick = ()=>{ sfx.pop(); $('#restartAsk').hidden = false; };
+$('#restartNo').onclick = ()=>{ sfx.pop(); $('#restartAsk').hidden = true; };
+$('#restartYes').onclick = ()=>{ try{ localStorage.removeItem('xx_save'); }catch(e){} setPaused(false); closeModal(); resetWorld(freshState()); toast('新的小岛，新的开始！','gold'); };
 function frame(dt, t){
   tickTime(dt);
   acc += dt; if(acc >= 1){ residents.forEach(r=>needsTick(r, acc)); acc = 0; }
@@ -3267,7 +3314,7 @@ S.pets.forEach(pd=>addPet(pd));
 fixCouples();
 spawnVisitor();
 updateCoins(); updateNewsDot(); onResize(); applySky(); loop();
-if(/[?&]debug\b/.test(location.search)) window.__isle = {get S(){ return S; }, get residents(){ return residents; }, get ev(){ return ev; }, get show(){ return show; }, get visitor(){ return visitor; }, quarrel, rebuildChar, cam, checkExpand, applyIsleLevel, canRomance, parentsLine, music(){ return {mStep, musicOn, soundOn, ctx: actx && actx.state}; }, voices(){ return zhVoices.map(v=>v.name+" | "+v.lang); }, pickVoice, speechText, natPitch, startParty, startConcert, openConcert, openAsk, openVisitor, spawnVisitor, makeVisitor, applyLv, openPark, openCafe, openLoc, songSeq, openShop, openRPS, takePhoto, openEditor, openPets, openPetEditor, openPetSheet, get pets(){ return pets; }, step(secs){ for(let i=0;i<secs*30;i++){ simT += 1/30; frame(1/30, simT); } }, select, startEvent, morning, enterRoom, openNews, showDream, byId};
+if(/[?&]debug\b/.test(location.search)) window.__isle = {get S(){ return S; }, get residents(){ return residents; }, get ev(){ return ev; }, get show(){ return show; }, get visitor(){ return visitor; }, quarrel, rebuildChar, cam, loopStep, get paused(){ return paused; }, checkExpand, applyIsleLevel, canRomance, parentsLine, music(){ return {mStep, musicOn, soundOn, ctx: actx && actx.state}; }, voices(){ return zhVoices.map(v=>v.name+" | "+v.lang); }, pickVoice, speechText, natPitch, startParty, startConcert, openConcert, openAsk, openVisitor, spawnVisitor, makeVisitor, applyLv, openPark, openCafe, openLoc, songSeq, openShop, openRPS, takePhoto, openEditor, openPets, openPetEditor, openPetSheet, get pets(){ return pets; }, step(secs){ for(let i=0;i<secs*30;i++){ simT += 1/30; frame(1/30, simT); } }, select, startEvent, morning, enterRoom, openNews, showDream, byId};
 setTimeout(()=>toast('点一点小人，看看他们想要什么吧！'), 600);
 setTimeout(()=>toast('点房子可以进屋装扮哦'), 3800);
 setTimeout(()=>toast('居民会交朋友、吵架、谈恋爱……多留意他们的心愿 💘'), 7000);
