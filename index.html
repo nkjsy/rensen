@@ -370,7 +370,8 @@ const VISITOR_NAMES = ['阿福','小雨','大海','茉莉','阿月','米可','�
 const VISITOR_LINES = ['我在环游世界，这座岛看起来真不错','坐了好久的船，终于看到陆地啦','听说这里住着一群有趣的人','我是个画家，想画下这里的喷泉','能在这里歇歇脚吗？'];
 const SLOT_R = 13.5;
 const SLOT_R2 = 24.5;
-const SLOTS = [SLOT_R, SLOT_R2].flatMap((R, ring)=>Array.from({length:8},(_,i)=>{ const a=i*Math.PI/4+Math.PI/8; return {a, r:R, outer:ring===1, x:Math.cos(a)*R, z:Math.sin(a)*R}; }));
+const RING_R = [SLOT_R, SLOT_R2, 34.5, 44.5, 54.5], RING_N = [8, 8, 12, 12, 10], RING_OFF = [Math.PI/8, Math.PI/8, Math.PI/12, 0, Math.PI/10];
+const SLOTS = RING_R.flatMap((R, ring)=>Array.from({length:RING_N[ring]},(_,i)=>{ const a = i*Math.PI*2/RING_N[ring] + RING_OFF[ring]; return {a, r:R, ring, outer:ring>=1, x:Math.cos(a)*R, z:Math.sin(a)*R}; }));
 
 /* ---------------- state ---------------- */
 let S = null; // saved state
@@ -593,6 +594,44 @@ for(let i=0;i<14;i++){ const d = mesh(G.sph(.1,8,6), B('#BFF2FF'),0,2,0,false); 
 
 // seeded random for scenery
 let seed = 7; const srand = ()=>{ seed = (seed*16807) % 2147483647; return (seed-1)/2147483646; };
+// merge static decoration into one mesh per material: hundreds of trees become a few draw calls
+const STATIC = [];
+function mergeStatic(){
+  if(!STATIC.length) return;
+  const byMat = new Map();
+  STATIC.splice(0).forEach(o=>{
+    o.updateMatrixWorld(true);
+    o.traverse(m=>{ if(!m.isMesh) return;
+      const g = (m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone()); g.applyMatrix4(m.matrixWorld);
+      const k = m.material.uuid + (m.castShadow ? 's' : '');
+      if(!byMat.has(k)) byMat.set(k, {mat:m.material, cast:m.castShadow, geos:[]}); byMat.get(k).geos.push(g); });
+    if(o.parent) o.parent.remove(o);
+  });
+  byMat.forEach(({mat, cast, geos})=>{
+    let n = 0; geos.forEach(g=>n += g.attributes.position.count);
+    const pos = new Float32Array(n*3), nor = new Float32Array(n*3); let off = 0;
+    geos.forEach(g=>{ pos.set(g.attributes.position.array, off*3); nor.set(g.attributes.normal.array, off*3); off += g.attributes.position.count; g.dispose(); });
+    const mg = new T.BufferGeometry(); mg.setAttribute('position', new T.BufferAttribute(pos,3)); mg.setAttribute('normal', new T.BufferAttribute(nor,3)); mg.computeBoundingSphere();
+    const mm = new T.Mesh(mg, mat); mm.castShadow = cast; mm.receiveShadow = true; scene.add(mm);
+  });
+}
+function mergeLocal(group){
+  const byMat = new Map(), keep = [];
+  group.children.slice().forEach(m=>{
+    if(!m.isMesh || m.userData.noMerge){ keep.push(m); return; }
+    m.updateMatrix(); const g = (m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone()); g.applyMatrix4(m.matrix);
+    const k = m.material.uuid + (m.castShadow ? 's' : '');
+    if(!byMat.has(k)) byMat.set(k, {mat:m.material, cast:m.castShadow, geos:[]}); byMat.get(k).geos.push(g); group.remove(m);
+  });
+  byMat.forEach(({mat, cast, geos})=>{
+    let n = 0; geos.forEach(g=>n += g.attributes.position.count);
+    const pos = new Float32Array(n*3), nor = new Float32Array(n*3); let off = 0;
+    geos.forEach(g=>{ pos.set(g.attributes.position.array, off*3); nor.set(g.attributes.normal.array, off*3); off += g.attributes.position.count; g.dispose(); });
+    const mg = new T.BufferGeometry(); mg.setAttribute('position', new T.BufferAttribute(pos,3)); mg.setAttribute('normal', new T.BufferAttribute(nor,3)); mg.computeBoundingSphere();
+    const mm = new T.Mesh(mg, mat); mm.castShadow = cast; mm.receiveShadow = true; group.add(mm);
+  });
+  return group;
+}
 function tree(x,z,s){
   const g = new T.Group();
   g.add(mesh(G.cyl(.22,.3,1.4,8), M('#9A6B4A'), 0,.7,0));
@@ -607,7 +646,7 @@ function tree(x,z,s){
     g.add(mesh(G.cone(.65,1.1,10), M(greens[1]), 0,3.4,0));
   }
   if(srand()<.35){ for(let i=0;i<3;i++){ const a=srand()*6.28; g.add(mesh(G.sph(.14,8,6), M('#FF6B6B'), Math.cos(a)*.95,1.9+srand()*.6,Math.sin(a)*.95)); } }
-  g.position.set(x,0,z); g.scale.setScalar(s); g.rotation.y = srand()*6.28; scene.add(g);
+  g.position.set(x,0,z); g.scale.setScalar(s); g.rotation.y = srand()*6.28; scene.add(g); STATIC.push(g);
 }
 for(let i=0;i<46;i++){
   const a = srand()*Math.PI*2, r = 16+srand()*3.4, x=Math.cos(a)*r, z=Math.sin(a)*r;
@@ -625,10 +664,12 @@ for(let i=0;i<110;i++){
   if(SLOTS.some(s=>Math.hypot(s.x-x,s.z-z)<2.6)) continue;
   const c = FLOWER_COLS[Math.floor(srand()*FLOWER_COLS.length)];
   const fl = mesh(G.sph(.13,8,6), M(c), x,.18,z, false); scene.add(fl);
-  const st = mesh(G.cyl(.02,.02,.18,4), M('#4FAE6B'), x,.08,z, false); scene.add(st);
+  const st = mesh(G.cyl(.02,.02,.18,4), M('#4FAE6B'), x,.08,z, false); scene.add(st); STATIC.push(fl, st);
 }
 // rocks on the beach
-for(let i=0;i<12;i++){ const a=srand()*6.28, r=21+srand()*1.8; const rk = mesh(G.sph(.4+srand()*.5,7,5), M('#BDB5C9'), Math.cos(a)*r,-.3,Math.sin(a)*r); rk.scale.y=.6; scene.add(rk); }
+const shoreRocks = [];
+for(let i=0;i<12;i++){ const a=srand()*6.28, r=21+srand()*1.8; const rk = mesh(G.sph(.4+srand()*.5,7,5), M('#BDB5C9'), Math.cos(a)*r,-.3,Math.sin(a)*r); rk.scale.y=.6; rk.userData.off = r - 20; scene.add(rk); shoreRocks.push(rk); }
+mergeStatic();
 // bench
 (function(){ const b=new T.Group(); b.add(mesh(G.box(2.4,.15,.7),M('#C98B62'),0,.55,0)); b.add(mesh(G.box(2.4,.5,.12),M('#C98B62'),0,.9,-.32)); [-1,1].forEach(s=>b.add(mesh(G.box(.12,.55,.6),M('#7A5A45'),s,.27,0))); b.position.set(0,0,-7); scene.add(b); })();
 
@@ -1076,6 +1117,42 @@ function buildAcc(type){
   if(type==='balloon'){ const bl = mesh(G.sph(.42,16,12), M('#FF5E6E'), .95,1.35,0); bl.scale.y=1.15; g.add(bl); g.add(mesh(G.cyl(.012,.012,1.9,4), B('#3B3355'), .95,.2,0,false)); g.userData.balloon = bl; }
   return g;
 }
+const blobMat = new T.MeshBasicMaterial({color:'#2B3A2E', transparent:true, opacity:.2, depthWrite:false});
+const blobGeo = new T.CircleGeometry(1, 24);
+function blobShadow(r){ const b = new T.Mesh(blobGeo, blobMat); b.rotation.x = -Math.PI/2; b.position.y = .025; b.scale.setScalar(r); b.renderOrder = 1; return b; }
+// Flatten a character: every rigid part (body, head, each arm / leg) becomes one mesh per material.
+// Cuts a resident from ~45 draw calls to ~15, which matters a lot with dozens of residents.
+function mergeGeos(list){ // list of transformed non-indexed geometries sharing a material
+  const uv = list.every(g=>g.attributes.uv); let n = 0; list.forEach(g=>n += g.attributes.position.count);
+  const pos = new Float32Array(n*3), nor = new Float32Array(n*3), uvs = uv ? new Float32Array(n*2) : null; let off = 0;
+  list.forEach(g=>{ pos.set(g.attributes.position.array, off*3); nor.set(g.attributes.normal.array, off*3); if(uv) uvs.set(g.attributes.uv.array, off*2); off += g.attributes.position.count; g.dispose(); });
+  const mg = new T.BufferGeometry(); mg.setAttribute('position', new T.BufferAttribute(pos,3)); mg.setAttribute('normal', new T.BufferAttribute(nor,3)); if(uv) mg.setAttribute('uv', new T.BufferAttribute(uvs,2)); mg.computeBoundingSphere(); return mg;
+}
+function flattenChar(p){
+  const keep = new Set([p.rig, p.head, ...p.arms, ...p.legs, p.mouth, p.accSlot, p.hit].filter(Boolean));
+  p.root.updateMatrixWorld(true);
+  [p.rig, p.head, ...p.arms, ...p.legs].forEach(N=>{
+    const inv = new T.Matrix4().copy(N.matrixWorld).invert(), buckets = new Map(), victims = [];
+    const walk = o=>o.children.forEach(c=>{
+      if(keep.has(c)) return;
+      if(c.isMesh && !c.isSprite && c.geometry && c.geometry.attributes.normal && c.visible && !c.userData.noMerge){
+        const k = c.material.uuid + (c.renderOrder ? '|' + c.renderOrder : '');
+        if(!buckets.has(k)) buckets.set(k, {mat:c.material, ro:c.renderOrder, items:[]});
+        buckets.get(k).items.push(c); victims.push(c);
+      }
+      if(!c.isSprite) walk(c);
+    });
+    walk(N);
+    buckets.forEach(({mat, ro, items})=>{
+      if(items.length < 2) return;
+      const geos = items.map(c=>{ const g = c.geometry.index ? c.geometry.toNonIndexed() : c.geometry.clone(); g.applyMatrix4(new T.Matrix4().multiplyMatrices(inv, c.matrixWorld)); return g; });
+      const mm = new T.Mesh(mergeGeos(geos), mat); mm.renderOrder = ro; N.add(mm);
+      items.forEach(c=>{ c.userData.merged = true; });
+    });
+    victims.forEach(c=>{ if(c.userData.merged && c.parent){ const kids = c.children.filter(x=>!x.userData.merged); c.parent.remove(c); kids.forEach(k=>{ /* keep unmerged children in place */ N.attach(k); }); } });
+  });
+  return p;
+}
 function shade(hex, k){ const c = new T.Color(hex); c.multiplyScalar(k); return '#' + c.getHexString(); }
 function buildChar(look, acc, outfit, opts){
   const root = new T.Group(), rig = new T.Group(); root.add(rig);
@@ -1144,8 +1221,9 @@ function buildChar(look, acc, outfit, opts){
   const accSlot = new T.Group(); head.add(accSlot); accSlot.add(buildAcc(acc));
   // invisible hit volume
   const hit = new T.Mesh(G.cyl(.8,.8,2.5,8), new T.MeshBasicMaterial({transparent:true, opacity:0, depthWrite:false})); hit.position.y = 1.25; root.add(hit);
-  root.traverse(o=>{ if(o.isMesh && o!==hit){ o.castShadow = true; } });
-  return {root, rig, head, arms, legs, mouth, eyes, accSlot, hit};
+  root.traverse(o=>{ if(o.isMesh && o!==hit) o.castShadow = false; });
+  root.add(blobShadow(.55));
+  return flattenChar({root, rig, head, arms, legs, mouth, eyes, accSlot, hit});
 }
 function setAcc(parts, acc){ parts.accSlot.clear(); parts.accSlot.add(buildAcc(acc)); parts.accSlot.traverse(o=>{ if(o.isMesh) o.castShadow = true; }); }
 
@@ -1164,6 +1242,7 @@ function buildHouse(r){
   h.add(mesh(G.box(.4,.9,.4), M('#D98E73'), .8,3.6,-.4));
   h.add(mesh(G.cyl(.9,.9,.08,20), M('#EFD29C'), 0,.04,2.1));
   const sign = sprite(labelTex(r.d.name+'的家'), 2.6, .73); sign.position.set(0,4.9,0); sign.material.depthTest = true; h.add(sign);
+  mergeLocal(h);
   h.position.set(s.x,0,s.z); h.rotation.y = Math.atan2(-s.x,-s.z);
   h.userData.pick = {type:'house', r};
   scene.add(h); houses[r.d.slot] = h;
@@ -1412,7 +1491,7 @@ function avoidObstacles(pos, dest, step){
 }
 function randomSpot(){
   for(let k=0;k<30;k++){
-    const a = rand(0,6.28), r = rand(3.4, S && S.isleLevel ? 27 : 11.2), x = Math.cos(a)*r, z = Math.sin(a)*r;
+    const a = rand(0,6.28), r = rand(3.4, S && S.isleLevel ? isleR - 3 : 11.2), x = Math.cos(a)*r, z = Math.sin(a)*r;
     if(EXCL.some(e=>Math.hypot(e.x-x,e.z-z)<e.r+.4)) continue;
     if(SLOTS.some(s=>Math.hypot(s.x-x,s.z-z)<3.1)) continue;
     return new T.Vector3(x,0,z);
@@ -1716,9 +1795,9 @@ function beHappy(r, emoji, secs=1.6){
 /* ---------------- story events: confess / propose / make up ---------------- */
 let ev = null;
 const EV_SPOT = new T.Vector3(0,0,6.2);
-function inEvent(r){ return (!!ev && (ev.a===r || ev.b===r || ev.rival===r)) || (!!show && show.cast.includes(r)); }
+function inEvent(r){ return (!!ev && (ev.a===r || ev.b===r || ev.rival===r)) || (!!show && show.cast.includes(r)) || birthBusy(r); }
 function startEvent(type, a, b, style){
-  if(ev || show){ toast('岛上正在发生一件大事，等一下哦'); return false; }
+  if(ev || show || birth){ toast('岛上正在发生一件大事，等一下哦'); return false; }
   if(isNight() || a.state==='home' || b.state==='home' || !b.p.root.visible){ toast('大家都睡了，明天再说吧'); return false; }
   if(mode==='room') leaveRoom();
   closeSheet();
@@ -1836,7 +1915,7 @@ function haveBaby(a, b){
   d.voice = newVoice(kg); d.voice.pitch = Math.min(2, d.voice.pitch + .3);
   d.kid = true; d.bornDay = S.day; d.parents = [a.d.id, b.d.id]; d.catch = pick([a.d.catch, b.d.catch]); d.room.items.push({type:'teddy',x:5,z:1,rot:0});
   d.friends[a.d.id] = a.d.friends[d.id] = 60; d.friends[b.d.id] = b.d.friends[d.id] = 60;
-  const r = addResident(d, true); confetti(scene, r.p.root.position); checkExpand();
+  const r = addResident(d, true); queueBirth(a, b, r); checkExpand();
   return r;
 }
 function updateNewsDot(){ $('#newsDot').hidden = !S.newsUnread; }
@@ -1870,7 +1949,7 @@ function modalHead(title){ return `<div class="modal-head"><h2>${title}</h2><but
 /* ---------------- hanging out & dates ---------------- */
 function locSpot(k){
   const L = LOCS[k];
-  if(k==='beach') return new T.Vector3(L.x*.9+rand(-1,1), 0, L.z*.9+rand(-1,1));
+  if(k==='beach'){ const d = Math.hypot(L.x,L.z), k2 = (isleR-1.8)/d; return new T.Vector3(L.x*k2+rand(-1,1), 0, L.z*k2+rand(-1,1)); }
   if(k==='petpark' || k==='sports') return new T.Vector3(L.x + rand(-1.6,1.6), 0, L.z + rand(-1.2,1.2));
   if(k==='camp'){ const a = rand(0, Math.PI*2); return new T.Vector3(L.x + Math.cos(a)*1.9, 0, L.z + Math.sin(a)*1.9); }
   const d = Math.hypot(L.x,L.z), ux = -L.x/d, uz = -L.z/d, px = -uz, pz = ux, off = L.r + (k==='cafe' ? 1.7 : 1.1), side = rand(-1.2,1.2);
@@ -1957,7 +2036,7 @@ function openPark(sel){
 let show = null, musicHold = false;
 const PARTY_C = new T.Vector3(0,0,7.2);
 const HB = [[67,.75],[67,.25],[69,1],[67,1],[72,1],[71,2],[67,.75],[67,.25],[69,1],[67,1],[74,1],[72,2],[67,.75],[67,.25],[79,1],[76,1],[72,1],[71,1],[69,2],[77,.75],[77,.25],[76,1],[72,1],[74,1],[72,2]];
-function busy(){ if(ev || show){ toast('岛上正在发生一件大事，等一下哦'); return true; } return false; }
+function busy(){ if(ev || show || birth){ toast('岛上正在发生一件大事，等一下哦'); return true; } return false; }
 function castScript(x){
   if(x.state==='chat'){ const o = x.target; x.target = null; if(o && o.target===x){ o.target = null; o.state = 'idle'; o.timer = 1; } }
   x.state = 'script'; x.after = null; x.pose = null; x.scriptBubble = null; x.onArrive = null; x.target = null; x.angryT = 0; x.dateWith = null; x.face = null; x.facePos = null;
@@ -2263,12 +2342,23 @@ window.addEventListener('blur', audioAway); window.addEventListener('pagehide', 
 window.addEventListener('focus', audioBack);
 document.addEventListener('visibilitychange', ()=>{ document.hidden ? audioAway() : (document.hasFocus() && audioBack()); });
 
-/* ---------------- island expansion ---------------- */
-// once the first 8 plots are full the island grows: an outer ring of 8 more plots and three new places
-function slotCap(){ return S && S.isleLevel ? SLOTS.length : 8; }
-function camMax(){ return S && S.isleLevel ? 85 : 60; }
+/* ---------------- island growth ---------------- */
+// Every new resident makes the island a little bigger. Plots fill ring by ring (8 + 8 + 12 + 12 + 10 = 50);
+// when the first 8 are full, the outer ring road opens together with the flower field, hot spring and salon.
+const POP_MAX = 50;
+function slotCap(){ return POP_MAX; }
+let isleR = 20, isleRTarget = 20;
+function camMax(){ return 60 + (isleRTarget - 20)*2.4; }
+function isleRadius(n){
+  n = n ?? residents.length;
+  const maxRing = residents.reduce((m,r)=>Math.max(m, (SLOTS[r.d.slot]||{}).ring || 0), 0);
+  if(maxRing===0) return 20 + Math.max(0, n-4)*.9;
+  // each ring needs its base size, and every extra neighbour in that ring widens the island a bit more
+  const inRing = residents.filter(r=>(SLOTS[r.d.slot]||{}).ring===maxRing).length;
+  return [20, 30, 40, 50, 60][maxRing] + Math.max(0, inRing-1)*.8;
+}
 let foamK = 1, expansionBuilt = false;
-const steam = [];
+const steam = [], ringsBuilt = new Set();
 const LOCS2 = {
   flower:{n:'花田',e:'🌷',x:18,z:18,r:0},
   spring:{n:'温泉',e:'♨️',x:-18,z:18,r:2.3},
@@ -2282,7 +2372,7 @@ function buildExpansion(){
   HANG_LOCS.push('flower','spring');
   // ring road + short paths to the outer plots
   const road = new T.Mesh(new T.RingGeometry(19.8,21.1,120), M('#EFD29C')); road.rotation.x = -Math.PI/2; road.position.y = .022; road.receiveShadow = true; scene.add(road);
-  SLOTS.filter(s=>s.outer).forEach(s=>{ const p = mesh(G.box(1.5,.04,1.8), M('#EFD29C'), 0,.021,0, false); const mid = 21.8; p.position.set(Math.cos(s.a)*mid,.021,Math.sin(s.a)*mid); p.rotation.y = -s.a + Math.PI/2; p.receiveShadow = true; scene.add(p); });
+  SLOTS.filter(s=>s.ring===1).forEach(s=>{ const p = mesh(G.box(1.5,.04,1.8), M('#EFD29C'), 0,.021,0, false); const mid = 21.8; p.position.set(Math.cos(s.a)*mid,.021,Math.sin(s.a)*mid); p.rotation.y = -s.a + Math.PI/2; p.receiveShadow = true; scene.add(p); });
   // outer woods
   let sd = 99; const r2 = ()=>{ sd = (sd*16807) % 2147483647; return (sd-1)/2147483646; };
   for(let i=0;i<60;i++){
@@ -2293,7 +2383,8 @@ function buildExpansion(){
     if(da(-Math.PI/4) < .16 || da(-Math.PI/2) < .12) continue;
     seed = Math.floor(r2()*1e6)+1; tree(x, z, .8 + r2()*.5);
   }
-  for(let i=0;i<90;i++){ const a = r2()*Math.PI*2, r = 21.8 + r2()*7, x = Math.cos(a)*r, z = Math.sin(a)*r; if(SLOTS.some(s=>Math.hypot(s.x-x,s.z-z) < 2.6)) continue; scene.add(mesh(G.sph(.13,8,6), M(FLOWER_COLS[i%FLOWER_COLS.length]), x,.18,z, false)); }
+  for(let i=0;i<90;i++){ const a = r2()*Math.PI*2, r = 21.8 + r2()*7, x = Math.cos(a)*r, z = Math.sin(a)*r; if(SLOTS.some(s=>Math.hypot(s.x-x,s.z-z) < 2.6)) continue; const fm = mesh(G.sph(.13,8,6), M(FLOWER_COLS[i%FLOWER_COLS.length]), x,.18,z, false); scene.add(fm); STATIC.push(fm); }
+  mergeStatic();
   (function(){ // flower field
     const g = new T.Group(), cols = ['#FF8FB1','#FFD54D','#B48CFF','#FF7A5A','#FFFFFF','#6FA8FF'];
     for(let i=0;i<7;i++) for(let j=0;j<5;j++){ const x = -2.4 + i*.8, z = -1.2 + j*.6; g.add(mesh(G.cyl(.03,.03,.3,4), M('#4FAE6B'), x,.15,z, false)); g.add(mesh(G.sph(.16,10,8), M(cols[(i+j*2)%cols.length]), x,.36,z, false)); }
@@ -2320,28 +2411,62 @@ function buildExpansion(){
     placeLoc(g,'salon',3.6);
   })();
 }
-function applyIsleLevel(){
-  const L = S.isleLevel || 0; if(!L) return;
-  buildExpansion();
-  ground.scale.set(1.5,1,1.5); sand.scale.set(1.4,1,1.4); foamK = 1.4;
-  scene.fog.near = 95; scene.fog.far = 220;
-  Object.assign(sun.shadow.camera, {left:-38,right:38,top:38,bottom:-38,far:120}); sun.shadow.camera.updateProjectionMatrix(); sun.shadow.mapSize.set(2048,2048); if(sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map = null; }
-  // the beach and the harbour move out to the new shore
-  LOCS.beach.x = 22.1; LOCS.beach.z = -22.1; LOC_G.beach.position.set(22.1,-.25,-22.1);
-  LOCS.pier.z = -31; LOC_G.pier.position.set(0,0,-31);
-  PIER_SPOT.set(0,0,-31.4); boat.position.set(2.2,-.55,-36.5);
+// ring roads + woods for the plot rings further out (ring 2, 3, 4)
+function buildRing(k){
+  if(k < 2 || ringsBuilt.has(k)) return; ringsBuilt.add(k);
+  const R = RING_R[k];
+  const road = new T.Mesh(new T.RingGeometry(R-3.9, R-2.6, 160), M('#EFD29C')); road.rotation.x = -Math.PI/2; road.position.y = .022; road.receiveShadow = true; scene.add(road);
+  let sd = 1000 + k*77; const r2 = ()=>{ sd = (sd*16807) % 2147483647; return (sd-1)/2147483646; };
+  for(let i=0;i<70 + k*10;i++){
+    const a = r2()*Math.PI*2, r = R + 3 + r2()*2.4, x = Math.cos(a)*r, z = Math.sin(a)*r;
+    if(SLOTS.some(s=>Math.hypot(s.x-x,s.z-z) < 3.6)) continue;
+    const da = kk=>Math.abs(Math.atan2(Math.sin(a-kk), Math.cos(a-kk)));
+    if(da(-Math.PI/4) < .1 || da(-Math.PI/2) < .08) continue;
+    seed = Math.floor(r2()*1e6)+1; tree(x, z, .8 + r2()*.5);
+  }
+  setTimeout(mergeStatic, 0);
+  for(let i=0;i<60;i++){ const a = r2()*Math.PI*2, r = R - 2 + r2()*7, x = Math.cos(a)*r, z = Math.sin(a)*r; if(SLOTS.some(s=>Math.hypot(s.x-x,s.z-z) < 2.6)) continue; const fm = mesh(G.sph(.13,8,6), M(FLOWER_COLS[i%FLOWER_COLS.length]), x,.18,z, false); scene.add(fm); STATIC.push(fm); }
+}
+// scale the land, move the shore places, widen fog / shadows / camera for the current radius
+function setIsleR(R){
+  isleR = R;
+  const gk = R/20, sk = (R+2.2)/23;
+  ground.scale.set(gk,1,gk); sand.scale.set(sk,1,sk); foamK = sk;
+  const bd = R + 1.3; LOCS.beach.x = bd*Math.SQRT1_2; LOCS.beach.z = -bd*Math.SQRT1_2; LOC_G.beach.position.set(LOCS.beach.x,-.25,LOCS.beach.z);
+  LOCS.pier.z = -(R+1); LOC_G.pier.position.set(0,0,LOCS.pier.z);
+  shoreRocks.forEach(rk=>{ const d = Math.hypot(rk.position.x, rk.position.z) || 1, t = R + rk.userData.off; rk.position.x *= t/d; rk.position.z *= t/d; });
+  PIER_SPOT.set(0,0,-(R+1.4)); boat.position.x = 2.2; boat.position.z = -(R+6.5);
   if(visitor) visitor.p.root.position.copy(PIER_SPOT);
 }
+function applyIsland(instant){
+  const maxRing = residents.reduce((m,r)=>Math.max(m, (SLOTS[r.d.slot]||{}).ring || 0), 0);
+  if(S.isleLevel) buildExpansion();
+  for(let k=2;k<=maxRing;k++) buildRing(k);
+  isleRTarget = isleRadius();
+  scene.fog.near = 70 + (isleRTarget-20)*2.5; scene.fog.far = 160 + (isleRTarget-20)*6;
+  const sb = isleRTarget + 8, sc = sun.shadow.camera;
+  if(Math.abs(sc.right - sb) > .5){ Object.assign(sc, {left:-sb,right:sb,top:sb,bottom:-sb,far:90 + (isleRTarget-20)*3}); sc.updateProjectionMatrix(); const ms = isleRTarget > 28 ? 2048 : 1024; if(sun.shadow.mapSize.x !== ms){ sun.shadow.mapSize.set(ms,ms); if(sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map = null; } } }
+  if(instant) setIsleR(isleRTarget);
+}
+function applyIsleLevel(){ applyIsland(true); }
+// call after anyone moves in (new resident, baby, visitor)
 function checkExpand(){
-  if(S.isleLevel || residents.length < 8) return;
-  S.isleLevel = 1; applyIsleLevel();
-  if(selected) closeSheet();
-  cam.goal.set(0,0,0); cam.distGoal = 64; cam.pitchGoal = .95;
-  confetti(scene, new T.Vector3(0,0,0)); sfx.happy();
-  toast('🎉 小岛住满啦！小岛扩建了，现在最多可以住 16 个人', 'gold');
-  setTimeout(()=>toast('新地点解锁：🌷花田、♨️温泉、💇美发店'), 1800);
-  logNews('🏗️ 小岛扩建啦！外圈多了 8 块宅基地，还开了花田、温泉和美发店');
+  const before = isleRTarget, ringBefore = ringsBuilt.size + (expansionBuilt ? 1 : 0);
+  let unlocked = false;
+  if(!S.isleLevel && residents.length >= 8){ S.isleLevel = 1; unlocked = true; }
+  applyIsland(false);
+  if(isleRTarget > before + .05){
+    if(selected) closeSheet();
+    cam.goal.set(0,0,0); cam.distGoal = Math.min(camMax(), isleRTarget*2.1 + 10); cam.pitchGoal = .95;
+    toast(`🏝️ 小岛又长大了一圈！现在住着 ${residents.length} 位居民（最多 ${POP_MAX} 位）`, 'gold');
+    if(unlocked){ setTimeout(()=>toast('新地点解锁：🌷花田、♨️温泉、💇美发店'), 1800); logNews('🏗️ 小岛扩建啦！外圈开了新的宅基地，还有花田、温泉和美发店'); }
+    else if(ringsBuilt.size + (expansionBuilt ? 1 : 0) > ringBefore) logNews(`🏗️ 小岛又扩建了，外面多了一圈新的宅基地`);
+    else logNews(`🏝️ 小岛变大了一点，现在住着 ${residents.length} 位居民`);
+  }
   save();
+}
+function isleTick(dt){
+  if(Math.abs(isleR - isleRTarget) > .01) setIsleR(isleR + (isleRTarget - isleR)*Math.min(1, dt*1.2));
 }
 function pickResident(title, tip, onPick){
   const avail = residents.filter(r=>r.p.root.visible && r.state!=='home' && !inEvent(r));
@@ -2438,6 +2563,97 @@ function campTick(t){
   const lit = campTime() || (S.hour >= 21 || S.hour < 6);
   campFlames.forEach((f,i)=>{ f.visible = lit; f.scale.set(1 + Math.sin(t*9 + i)*.12, 1 + Math.sin(t*13 + i*2)*.2, 1); });
   campLight.intensity = lit ? (isNight() ? .7 : .35) + Math.sin(t*11)*.08 : 0;
+}
+
+/* ---------------- birth: a stork brings the baby ---------------- */
+let birth = null; const birthQueue = [];
+function buildStork(){
+  const g = new T.Group(), W = M('#FFFFFF'), O = M('#FF9F1C'), K = M('#2A2438');
+  const body = mesh(G.sph(.45,16,12), W, 0,0,0); body.scale.set(.8,.75,1.3); g.add(body);
+  const neck = mesh(G.cyl(.08,.1,.6,8), W, 0,.4,.45); neck.rotation.x = .5; g.add(neck);
+  g.add(mesh(G.sph(.2,12,10), W, 0,.68,.62));
+  const beak = mesh(G.cone(.07,.55,8), O, 0,.64,.98); beak.rotation.x = Math.PI/2; g.add(beak);
+  [-1,1].forEach(s=>g.add(mesh(G.sph(.035,6,5), K, s*.1,.74,.74)));
+  const wings = [-1,1].map(s=>{ const w = new T.Group(); w.position.set(s*.3,.1,0); w.add(mesh(G.box(1.1,.06,.7), W, s*.55,0,0)); w.add(mesh(G.box(.3,.065,.7), K, s*1.05,0,0)); g.add(w); return w; });
+  [-1,1].forEach(s=>{ const lg = mesh(G.cyl(.025,.025,.7,5), O, s*.12,-.5,-.35); lg.rotation.x = 1.1; g.add(lg); });
+  const bundle = new T.Group(); bundle.position.set(0,.3,1.18);
+  bundle.add(mesh(G.cyl(.012,.012,.36,4), M('#C9C9D6'), 0,.14,0));
+  const cloth = mesh(G.sph(.3,14,10), M('#FFD3DA'), 0,-.2,0); cloth.scale.set(1,.85,1); bundle.add(cloth);
+  bundle.add(mesh(G.cone(.15,.3,8), M('#FFD3DA'), 0,.08,0));
+  bundle.add(mesh(G.sph(.12,10,8), M('#FFE3CC'), 0,-.12,.2));
+  g.add(bundle); g.userData = {wings, bundle};
+  g.scale.setScalar(1.4); return g;
+}
+function queueBirth(a, b, kid){ kid.state = 'script'; kid.dest = null; kid.p.root.visible = false; birthQueue.push({a, b, kid}); }
+function birthBusy(r){ return (!!birth && (birth.a===r || birth.b===r || birth.kid===r)) || birthQueue.some(q=>q.kid===r); }
+function startBirth(q){
+  const {a, b, kid} = q;
+  if(!byId(a.d.id) || !byId(b.d.id)){ kid.state = 'idle'; kid.p.root.visible = true; return; }
+  if(mode==='room') leaveRoom(); if(selected) closeSheet();
+  [a,b].forEach(castScript);
+  const door = doorPoint(a.d.slot), d = Math.hypot(door.x, door.z) || 1, ux = -door.x/d, uz = -door.z/d, px = -uz, pz = ux;
+  const L = new T.Vector3(door.x + ux*2.6, 0, door.z + uz*2.6);
+  a.dest = new T.Vector3(L.x - px*1.1 - ux*.3, 0, L.z - pz*1.1 - uz*.3); b.dest = new T.Vector3(L.x + px*1.1 - ux*.3, 0, L.z + pz*1.1 - uz*.3);
+  a.facePos = L.clone(); b.facePos = L.clone();
+  kid.p.root.position.copy(L); kid.p.root.visible = false;
+  const stork = buildStork(), from = new T.Vector3(L.x - ux*34 + px*10, 16, L.z - uz*34 + pz*10), hover = new T.Vector3(L.x, 5.2, L.z);
+  stork.position.copy(from); scene.add(stork);
+  birth = {a, b, kid, L, stork, from, hover, stage:0, t:0};
+  cam.goal.set(L.x, 2.4, L.z); cam.distGoal = 17; cam.pitchGoal = .42; cam.yawGoal = Math.atan2(ux, uz); // look from the plaza side toward the house
+  musicHold = true;
+  toast('🕊️ 咦？天上飞来了什么……', 'pink');
+}
+function flap(st, t, speed){ st.userData.wings.forEach((w,i)=>w.rotation.z = (i ? -1 : 1)*Math.sin(t*speed)*.7); }
+function updateBirth(dt, t){
+  if(!birth){ if(birthQueue.length && !ev && !show && !isNight() && mode==='island') startBirth(birthQueue.shift()); return; }
+  const B = birth, st = B.stork; B.t += dt;
+  if(B.stage===0){ // stork flies in while the parents gather
+    const k = Math.min(1, B.t/5), e = 1 - Math.pow(1-k, 3);
+    st.position.lerpVectors(B.from, B.hover, e); st.position.y += Math.sin(t*3)*.15;
+    st.lookAt(B.hover.x, st.position.y, B.hover.z); flap(st, t, 9);
+    if(k >= 1 && (!B.a.dest && !B.b.dest || B.t > 7)){
+      [B.a,B.b].forEach(x=>{ if(x.dest){ x.p.root.position.copy(x.dest); x.dest = null; } x.pose = 'chat'; x.scriptBubble = '😮'; });
+      B.stage = 1; B.t = 0; toast('是送子鸟！它叼着一个小包裹……');
+      const w = new T.Vector3(); B.stork.userData.bundle.getWorldPosition(w); scene.attach(B.stork.userData.bundle); B.bundle = B.stork.userData.bundle; B.drop = w;
+      tone(880,.3,'sine',.05); tone(1175,.4,'sine',.04,.2);
+    }
+  } else if(B.stage===1){ // the bundle floats down
+    flap(st, t, 5); st.position.y = B.hover.y + Math.sin(t*2)*.12;
+    const k = Math.min(1, B.t/2.2);
+    B.bundle.position.set(B.L.x + Math.sin(t*3)*.25*(1-k), lerp(B.drop.y, .45, k), B.L.z);
+    B.bundle.rotation.z = Math.sin(t*3)*.25*(1-k);
+    if(k >= 1){
+      scene.remove(B.bundle); B.stage = 2; B.t = 0;
+      B.kid.p.root.visible = true; B.kid.p.root.scale.setScalar(.01); B.kid.scriptBubble = '👶';
+      burst(scene, B.L.clone().setY(1.2), '✨', 12, 1); confetti(scene, B.L); sfx.happy();
+      [B.a,B.b].forEach(x=>{ x.pose = 'happy'; x.scriptBubble = '💖'; x.d.mood = 100; });
+      [523,659,784,1047,784,1047].forEach((f,i)=>tone(f,.3,'triangle',.06,.5 + i*.18));
+      toast(`👶 宝宝 ${B.kid.d.name} 出生啦！`, 'pink');
+    }
+  } else if(B.stage===2){ // baby appears, stork leaves
+    const k = Math.min(1, B.t/.8); B.kid.p.root.scale.setScalar(.85*(1 - Math.pow(1-k,3)) + .01);
+    flap(st, t, 10); st.position.y += dt*3; st.position.x += dt*6; st.rotation.y += dt*.3;
+    if(B.t > 4) endBirth();
+  }
+}
+function endBirth(){
+  const B = birth; if(!B) return;
+  scene.remove(B.stork); if(B.bundle) scene.remove(B.bundle);
+  [B.a,B.b,B.kid].forEach(x=>{ x.state = 'idle'; x.timer = rand(1,2.5); x.pose = null; x.scriptBubble = null; x.face = null; x.facePos = null; x.dest = null; });
+  B.kid.p.root.scale.setScalar(.85);
+  birth = null; musicHold = false; cam.distGoal = null; cam.goal.y = 0; save();
+  nameBaby(B.kid, B.a, B.b);
+}
+function nameBaby(kid, a, b){
+  if($('#modalRoot').innerHTML) return; // don't cover something the player is doing
+  const d = kid.d, g = gOf(kid)==='f' ? '女孩' : '男孩';
+  openModal(modalHead('👶 宝宝出生啦！') + `<p class="q-say">${esc(a.d.name)} 和 ${esc(b.d.name)} 有了一个${g}！给宝宝取个名字吧</p>
+    <div class="name-row"><input class="text-in" id="babyName" maxlength="6" value="${esc(d.name)}" autocomplete="off"><button class="toy pill-btn hot" data-bname="1">就叫这个</button></div>`, bt=>{
+    if(!bt || !bt.dataset.bname) return;
+    const v = ($('#babyName').value || '').trim().slice(0,6);
+    if(v && v !== d.name){ const old = d.name; d.name = v; rebuildChar(kid); buildHouse(kid); logNews(`👶 ${a.d.name} 和 ${b.d.name} 给宝宝取名叫「${v}」`); const fix = x=>x.split(`宝宝 ${old}`).join(`宝宝 ${v}`); if(S.log) S.log = S.log.map(fix); if(S.news && S.news.items) S.news.items = S.news.items.map(fix); }
+    closeModal(); toast(`欢迎你，${d.name}！`, 'gold'); save();
+  });
 }
 
 /* ---------------- time of day ---------------- */
@@ -3157,13 +3373,14 @@ soundIcon();
 
 /* ---------------- world lifecycle ---------------- */
 function resetWorld(state){
+  if(birth){ scene.remove(birth.stork); if(birth.bundle) scene.remove(birth.bundle); birth = null; } birthQueue.length = 0;
   if(S && S.isleLevel && !state.isleLevel){ try{ localStorage.setItem('xx_save', JSON.stringify(state)); }catch(e){} location.reload(); return; } // shrinking the island back is simplest with a fresh page
   residents.forEach(r=>scene.remove(r.p.root)); residents = [];
   pets.forEach(pw=>scene.remove(pw.p.root)); pets.length = 0;
   Object.values(houses).forEach(h=>scene.remove(h)); for(const k in houses) delete houses[k];
   if(show){ if(show.cake) scene.remove(show.cake); show = null; karaoke(null,-1); musicHold = false; }
   selected = null; ev = null; cam.distGoal = null; $('#sheet').hidden = true; if(mode==='room') leaveRoom();
-  S = state; S.residents.forEach(d=>addResident(d,false)); (S.pets||[]).forEach(pd=>addPet(pd)); spawnVisitor(); updateCoins(); updateNewsDot(); applySky(); save();
+  S = state; S.residents.forEach(d=>addResident(d,false)); (S.pets||[]).forEach(pd=>addPet(pd)); applyIsland(true); spawnVisitor(); updateCoins(); updateNewsDot(); applySky(); save();
 }
 
 function onResize(){
@@ -3273,8 +3490,8 @@ function buildPet(pd){
   if(!bird){ const cl = new T.Mesh(new T.TorusGeometry(headR*.78,.028,8,24), M(pd.collar)); cl.position.set(0, headY - headR*.78, headZ - .06); cl.rotation.x = Math.PI/2 - .35; rig.add(cl); rig.add(mesh(G.sph(.04,10,8), M('#FFD23F'), 0, headY - headR*.95, headZ + headR*.62)); }
   else { const cl = new T.Mesh(new T.TorusGeometry(.14,.022,8,20), M(pd.collar)); cl.position.set(0,.6,.08); cl.rotation.x = Math.PI/2; rig.add(cl); }
   const hit = new T.Mesh(G.cyl(.55,.55,1.1,8), new T.MeshBasicMaterial({transparent:true, opacity:0, depthWrite:false})); hit.position.y = .5; root.add(hit);
-  root.traverse(o=>{ if(o.isMesh && o!==hit) o.castShadow = true; });
-  const sc = .8 + (pd.size ?? 4)*.05; rig.scale.setScalar(sc);
+  root.traverse(o=>{ if(o.isMesh && o!==hit) o.castShadow = false; });
+  const sc = .8 + (pd.size ?? 4)*.05; rig.scale.setScalar(sc); root.add(blobShadow(.42*sc));
   return {root, rig, head, tail:tailG, legs, hit};
 }
 function petHome(pw){ const o = pw.d.owner && byId(pw.d.owner); return o ? doorPoint(o.d.slot) : new T.Vector3(rand(-4,4),0,rand(3,6)); }
@@ -3447,7 +3664,7 @@ function frame(dt, t){
   residents.forEach(r=>updateResident(r, dt, t));
   pets.forEach(pw=>updatePet(pw, dt, t)); petT += dt; if(petT > 40){ petMoodTick(); petT = 0; }
   updateEvent(dt); updateShow(dt);
-  campTick(t);
+  campTick(t); isleTick(dt); updateBirth(dt, t);
   wheel.rotation.z += dt*.25; cabins.forEach(c=>c.rotation.z = -wheel.rotation.z);
   if(boat.visible){ boat.position.y = -.55 + Math.sin(t*1.4)*.06; boat.rotation.z = Math.sin(t*1.1)*.05; }
   if(visitor){ visitor.p.rig.position.y = Math.sin(t*2.2)*.02; visitor.p.head.rotation.z = Math.sin(t*1.3)*.06; visitor.bubble.position.y = 3.55 + Math.sin(t*3)*.08; }
@@ -3487,14 +3704,14 @@ S.inv = Object.assign({food:{},acc:{},furn:{},cloth:{}}, S.inv||{});
 if(!S.log) S.log = [];
 S.residents.forEach(d=>{ if(!d.catch) d.catch = pick(CATCHES); if(d.partner===undefined) d.partner = null; if(!d.voice) d.voice = newVoice(); if(d.voice.seed==null) d.voice.seed = Math.random(); if(!d.voice.g){ d.voice.g = guessGender(d); if(d.voice.g==='m' && d.voice.pitch > 1.1) d.voice.pitch = Math.round(rand(.75,1.05)*10)/10; if(d.voice.g==='f' && d.voice.pitch < 1.05) d.voice.pitch = Math.round(rand(1.1,1.5)*10)/10; } if(!d.traits){ d.traits = traitsFor(d.pers); } if(!d.bday) d.bday = ri(1,YEAR); if(!d.outfit) d.outfit = 'tee'; if(!d.look.eyeColor) d.look.eyeColor = pick(EYE_COLORS.slice(0,3)); if(d.look.pattern===undefined) d.look.pattern = pick(['stripe','dots','stars','hearts','flowers','check']); if(!d.songs) d.songs = [songCopy(pick(SONG_BOOK))]; });
 if(S.visitor && (S.hour >= 20 || S.hour < 6)) S.visitor = null;
-if(S.isleLevel) applyIsleLevel();
 S.residents.forEach(d=>{ delete d.likes; addResident(d,false); });
 if(!S.pets) S.pets = [];
 S.pets.forEach(pd=>addPet(pd));
+applyIsland(true);
 fixCouples();
 spawnVisitor();
 updateCoins(); updateNewsDot(); onResize(); applySky(); loop();
-if(/[?&]debug\b/.test(location.search)) window.__isle = {get S(){ return S; }, get residents(){ return residents; }, get ev(){ return ev; }, get show(){ return show; }, get visitor(){ return visitor; }, quarrel, rebuildChar, cam, loopStep, get pets(){ return pets; }, newPetData, addPet, get paused(){ return paused; }, checkExpand, applyIsleLevel, canRomance, parentsLine, music(){ return {mStep, musicOn, soundOn, ctx: actx && actx.state}; }, voices(){ return zhVoices.map(v=>v.name+" | "+v.lang); }, pickVoice, speechText, natPitch, startParty, startConcert, openConcert, openAsk, openVisitor, spawnVisitor, makeVisitor, applyLv, openPark, openCafe, openLoc, songSeq, openShop, openRPS, takePhoto, openEditor, openPets, openPetEditor, openPetSheet, get pets(){ return pets; }, step(secs){ for(let i=0;i<secs*30;i++){ simT += 1/30; frame(1/30, simT); } }, select, startEvent, morning, enterRoom, openNews, showDream, byId};
+if(/[?&]debug\b/.test(location.search)) window.__isle = {get S(){ return S; }, get residents(){ return residents; }, get ev(){ return ev; }, get show(){ return show; }, get visitor(){ return visitor; }, quarrel, rebuildChar, cam, loopStep, renderer, scene, frame, get birth(){ return birth; }, haveBaby, get isleR(){ return isleR; }, get isleRTarget(){ return isleRTarget; }, get pets(){ return pets; }, newPetData, addPet, get paused(){ return paused; }, checkExpand, applyIsleLevel, canRomance, parentsLine, music(){ return {mStep, musicOn, soundOn, ctx: actx && actx.state}; }, voices(){ return zhVoices.map(v=>v.name+" | "+v.lang); }, pickVoice, speechText, natPitch, startParty, startConcert, openConcert, openAsk, openVisitor, spawnVisitor, makeVisitor, applyLv, openPark, openCafe, openLoc, songSeq, openShop, openRPS, takePhoto, openEditor, openPets, openPetEditor, openPetSheet, get pets(){ return pets; }, step(secs){ for(let i=0;i<secs*30;i++){ simT += 1/30; frame(1/30, simT); } }, select, startEvent, morning, enterRoom, openNews, showDream, byId};
 setTimeout(()=>toast('点一点小人，看看他们想要什么吧！'), 600);
 setTimeout(()=>toast('点房子可以进屋装扮哦'), 3800);
 setTimeout(()=>toast('居民会交朋友、吵架、谈恋爱……多留意他们的心愿 💘'), 7000);
