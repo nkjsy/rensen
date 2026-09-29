@@ -349,7 +349,13 @@ const TALK_SUB = {
   cool:['安静一点比较好','我刚看完一本书','一个人也挺自在','……这很酷，对吧']
 };
 const YEAR = 10;
-const KID_DAYS = 10; // days before a baby grows up // one island year = 10 days
+const ADULT_AGE = 18, KID_DAYS = ADULT_AGE * 10; // children grow up over 18 island years (10 days each)
+const MAX_KIDS = 3; // per family
+function kidAge(d){ return Math.max(0, (S.day - (d.bornDay ?? S.day)) / 10); }
+function kidStage(d){ const a = kidAge(d); return a < 1 ? '婴儿' : a < 3 ? '幼儿' : a < 6 ? '学龄前' : a < 12 ? '小学生' : a < 15 ? '初中生' : '高中生'; }
+function kidScale(d){ return d.kid ? .5 + .75*Math.min(1, kidAge(d)/ADULT_AGE) : 1.25; }
+function kidTag(d){ return `${kidStage(d)} · ${Math.floor(kidAge(d))}岁`; }
+function kidsOf(a, b){ return residents.filter(r=>r.d.parents && r.d.parents.includes(a.d.id) && r.d.parents.includes(b.d.id)).length; } // one island year = 10 days
 const GENRES = {
   pop:{n:'流行',bpm:132,wave:'triangle',scale:[0,2,4,7,9,12,14,16]},
   rock:{n:'摇滚',bpm:160,wave:'sawtooth',scale:[0,3,5,7,10,12,15,17]},
@@ -399,7 +405,7 @@ function traitsFor(pers){
 function persFromTraits(t){ const out = t.social >= 4.5, serious = t.mind >= 4.5; return out ? (serious ? 'lively' : 'funny') : (serious ? 'cool' : 'gentle'); }
 function persSub(t){ return (t.move >= 4.5 ? 2 : 0) + (t.talk >= 4.5 ? 1 : 0); }
 function persName(d){ const t = d.traits || traitsFor(d.pers); return PERS[d.pers] + '·' + PERS_SUB[d.pers][persSub(t)]; }
-function isBday(d){ return !d.kid && ((S.day-1) % YEAR) + 1 === d.bday; }
+function isBday(d){ return ((S.day-1) % YEAR) + 1 === d.bday && !(d.kid && d.bornDay === S.day); }
 function songCopy(s){ return {title:s.title, genre:s.genre, lyrics:s.lyrics}; }
 function makeResData(name, look, pers, slot){
   const foods = Object.keys(FOODS);
@@ -1513,7 +1519,7 @@ function dressChar(r){
   const p = r.p;
   const label = sprite(labelTex(r.d.name), 1.5, .42); label.position.y = 2.72; p.root.add(label); r.label = label;
   const b = sprite(bubbleTex('💬','n'), 1.05, 1.05); b.position.y = 3.55; b.visible = false; p.root.add(b); r.bubble = b; r.bubbleKey = '';
-  p.root.scale.setScalar(r.d.kid ? .85 : 1.25); p.hit.userData.pick = {type:'res', r};
+  p.root.scale.setScalar(kidScale(r.d)); p.hit.userData.pick = {type:'res', r};
 }
 function rebuildChar(r){
   const old = r.p.root, p = buildChar(r.d.look, r.d.acc, r.d.outfit, r.d.voice);
@@ -1612,9 +1618,9 @@ function talk(r){
     if(d.outfit && d.outfit!=='tee') lines.push(`你看我的${OUTFITS[d.outfit].n}好看吗`);
     const pt = d.partner && byId(d.partner);
     if(pt) lines.push(d.pType==='spouse' ? `和${pt.d.name}的每一天都很幸福` : `最喜欢${pt.d.name}了`, `今天想和${pt.d.name}去约会`);
-    if(d.kid) lines.push('我长大要当岛主！', parentsLine(d));
+    if(d.kid){ const a = kidAge(d); lines.length = 0; if(a < 1) lines.push('咿咿呀呀～','（咬手指）','啊——布布！'); else if(a < 3) lines.push('抱抱！','要吃饭饭','爸爸妈妈最好了'); else if(a < 12) lines.push('我长大要当岛主！', parentsLine(d), '今天在学校学了新东西', '我们去玩捉迷藏吧'); else lines.push('作业好多啊……', '我已经不是小孩子了！', '以后我想去环游世界'); }
     const best = residents.filter(o=>o!==r && !isFamily(r,o)).sort((x,y)=>(d.friends[y.d.id]||0)-(d.friends[x.d.id]||0))[0];
-    if(best && (d.friends[best.d.id]||0) >= 50) lines.push(`${best.d.name}是我的好朋友`);
+    if(best && (!d.kid || kidAge(d) >= 3) && (d.friends[best.d.id]||0) >= 50) lines.push(`${best.d.name}是我的好朋友`);
   }
   return withCatch(pick(lines), c);
 }
@@ -1651,6 +1657,7 @@ function endChat(r, natural){
 function decide(r){
   if(isNight()){ r.state = 'walk'; r.dest = doorPoint(r.d.slot); r.onArrive = 'home'; return; }
   if(r === selected){ r.state = 'idle'; r.timer = 1; return; }
+  if(r.d.kid && kidAge(r.d) < 3){ const par = (r.d.parents||[]).map(byId).filter(x=>x && x.p.root.visible && x.state!=='home'); if(par.length){ const pp = pick(par).p.root.position; r.state = 'walk'; r.dest = new T.Vector3(pp.x + rand(-1.2,1.2), 0, pp.z + rand(-1.2,1.2)); r.onArrive = null; r.target = null; return; } }
   if(festivalNow()){
     if(!r.watching){ r.watching = true; r.state = 'walk'; r.dest = plazaSpot(); r.onArrive = null; r.target = null; return; }
     r.state = 'idle'; r.timer = rand(3,5); return;
@@ -1913,7 +1920,7 @@ function haveBaby(a, b){
   const kg = Math.random() < .5 ? 'f' : 'm', look = Object.assign(newLook(kg), {skin:pick([A.skin,B.skin]), hairColor:pick([A.hairColor,B.hairColor]), eyes:pick([A.eyes,B.eyes]), eyeColor:pick([A.eyeColor||EYE_COLORS[0],B.eyeColor||EYE_COLORS[0]]), nose:pick([A.nose||'dot',B.nose||'dot']), mouth:pick([A.mouth||'smile',B.mouth||'smile']), beard:'none', height:2});
   const d = makeResData(pick(NAMES.filter(n=>!usedNames.has(n)).concat(['小宝'])), look, pick([a.d.pers,b.d.pers]), free[0]);
   d.voice = newVoice(kg); d.voice.pitch = Math.min(2, d.voice.pitch + .3);
-  d.kid = true; d.bornDay = S.day; d.parents = [a.d.id, b.d.id]; d.catch = pick([a.d.catch, b.d.catch]); d.room.items.push({type:'teddy',x:5,z:1,rot:0});
+  d.kid = true; d.bornDay = S.day; d.bday = ((S.day-1) % YEAR) + 1; d.parents = [a.d.id, b.d.id]; d.catch = pick([a.d.catch, b.d.catch]); d.room.items.push({type:'teddy',x:5,z:1,rot:0});
   d.friends[a.d.id] = a.d.friends[d.id] = 60; d.friends[b.d.id] = b.d.friends[d.id] = 60;
   const r = addResident(d, true); queueBirth(a, b, r); checkExpand();
   return r;
@@ -2631,7 +2638,7 @@ function updateBirth(dt, t){
       toast(`👶 宝宝 ${B.kid.d.name} 出生啦！`, 'pink');
     }
   } else if(B.stage===2){ // baby appears, stork leaves
-    const k = Math.min(1, B.t/.8); B.kid.p.root.scale.setScalar(.85*(1 - Math.pow(1-k,3)) + .01);
+    const k = Math.min(1, B.t/.8); B.kid.p.root.scale.setScalar(kidScale(B.kid.d)*(1 - Math.pow(1-k,3)) + .01);
     flap(st, t, 10); st.position.y += dt*3; st.position.x += dt*6; st.rotation.y += dt*.3;
     if(B.t > 4) endBirth();
   }
@@ -2640,7 +2647,7 @@ function endBirth(){
   const B = birth; if(!B) return;
   scene.remove(B.stork); if(B.bundle) scene.remove(B.bundle);
   [B.a,B.b,B.kid].forEach(x=>{ x.state = 'idle'; x.timer = rand(1,2.5); x.pose = null; x.scriptBubble = null; x.face = null; x.facePos = null; x.dest = null; });
-  B.kid.p.root.scale.setScalar(.85);
+  B.kid.p.root.scale.setScalar(kidScale(B.kid.d));
   birth = null; musicHold = false; cam.distGoal = null; cam.goal.y = 0; save();
   nameBaby(B.kid, B.a, B.b);
 }
@@ -2693,6 +2700,7 @@ function morning(){
   S.news = {day:S.day-1, items:(S.log||[]).slice()}; S.log = [];
   const extra = [];
   residents.forEach(r=>{ const w = r.d.want; if(w && w.type==='makeup' && w.since!=null && S.day - w.since >= 5){ const o = byId(w.with); r.d.want = null; if(o && o.d.want && o.d.want.type==='makeup' && o.d.want.with===r.d.id){ o.d.want = null; extra.push(`🤝 ${r.d.name} 和 ${o.d.name} 过了好几天，终于慢慢和好了`); } } });
+  residents.forEach(r=>{ if(r.d.kid){ const before = kidStage(Object.assign({}, r.d, {bornDay:r.d.bornDay+1})); r.p.root.scale.setScalar(kidScale(r.d)); const now = kidStage(r.d); if(now !== before && S.day - r.d.bornDay < KID_DAYS) extra.push(`🌱 ${r.d.name} ${Math.floor(kidAge(r.d))} 岁了，成了${now}`); } });
   residents.forEach(r=>{ if(r.d.kid && S.day - r.d.bornDay >= KID_DAYS){ r.d.kid = false; r.p.root.scale.setScalar(1.25); extra.push(`🎓 ${r.d.name} 长大啦，成了小岛上的大人！`); } });
   const seen = new Set();
   residents.slice().forEach(r=>{
@@ -2701,7 +2709,7 @@ function morning(){
     if(r.d.pType==='lover' && S.day - r.d.pSince >= 2 && fv >= 85 && Math.random() < .5){
       const a = Math.random()<.5 ? r : pt;
       if(!hasSocialWant(a)){ a.d.want = {type:'propose', with:(a===r?pt:r).d.id}; extra.push(`💍 听说 ${a.d.name} 在偷偷准备求婚……`); }
-    } else if(r.d.pType==='spouse' && S.day - r.d.pSince >= 1 && S.day - (r.d.lastBaby||-9) >= 3 && Math.random() < .45){
+    } else if(r.d.pType==='spouse' && S.day - r.d.pSince >= 10 && S.day - (r.d.lastBaby ?? -99) >= 20 && kidsOf(r, pt) < MAX_KIDS && Math.random() < .12){
       const kid = haveBaby(r, pt);
       extra.push(kid ? `👶 ${r.d.name} 和 ${pt.d.name} 家迎来了宝宝 ${kid.d.name}！` : `🍼 ${r.d.name} 和 ${pt.d.name} 想要个宝宝，可是小岛住满啦`);
     }
@@ -2841,7 +2849,7 @@ function renderSheet(){
   el.innerHTML = `
     <div class="sheet-head">
       <div class="face-dot" ${hairDot(d)}></div>
-      <div><h2>${esc(d.name)}</h2><div class="tags"><span class="tag">${gOf(r)==='f' ? '👧 女生' : '👦 男生'}</span><span class="tag">${persName(d)}</span><span class="tag">${d.level} 级</span><span class="tag">🎂 ${bdayText(d)}</span>${d.nick?`<span class="tag">外号「${esc(d.nick)}」</span>`:''}<span class="tag">最爱 ${FOODS[d.fav].e}</span><span class="tag">不爱 ${FOODS[d.dislike].e}</span>${pt?`<span class="tag">${d.pType==='spouse'?'💍 夫妻':'💑 恋人'} ${esc(pt.d.name)}</span>`:''}${d.kid?'<span class="tag">👶 宝宝</span>':''}${pets.filter(pw=>pw.d.owner===d.id).map(pw=>`<span class="tag">${PET_KINDS[pw.d.kind].e} ${esc(pw.d.name)}</span>`).join('')}</div></div>
+      <div><h2>${esc(d.name)}</h2><div class="tags"><span class="tag">${gOf(r)==='f' ? '👧 女生' : '👦 男生'}</span><span class="tag">${persName(d)}</span><span class="tag">${d.level} 级</span><span class="tag">🎂 ${bdayText(d)}</span>${d.nick?`<span class="tag">外号「${esc(d.nick)}」</span>`:''}<span class="tag">最爱 ${FOODS[d.fav].e}</span><span class="tag">不爱 ${FOODS[d.dislike].e}</span>${pt?`<span class="tag">${d.pType==='spouse'?'💍 夫妻':'💑 恋人'} ${esc(pt.d.name)}</span>`:''}${d.kid?`<span class="tag">👶 ${kidTag(d)}</span>`:''}${pets.filter(pw=>pw.d.owner===d.id).map(pw=>`<span class="tag">${PET_KINDS[pw.d.kind].e} ${esc(pw.d.name)}</span>`).join('')}</div></div>
       <button class="toy close" data-close="1" aria-label="关闭">×</button>
     </div>
     <div class="bars">
@@ -2984,7 +2992,7 @@ function openShop(tab){
 function openFriends(confirming){
   const cards = residents.map(r=>{
     const links = residents.filter(o=>o!==r).map(o=>({o, v:r.d.friends[o.d.id]||0})).sort((a,b)=>b.v-a.v);
-    return `<div class="fr"><div class="face-dot" ${hairDot(r.d)}></div><div><div class="who">${esc(r.d.name)}</div><div class="meta">${r.d.kid?'👶 宝宝 · ':''}${gOf(r)==='f' ? '♀' : '♂'} ${persName(r.d)} · ${r.d.level} 级 · 🎂 ${bdayText(r.d)} · 口头禅「${esc(r.d.catch||'')}」 · 心情 ${Math.round(r.d.mood)}</div>
+    return `<div class="fr"><div class="face-dot" ${hairDot(r.d)}></div><div><div class="who">${esc(r.d.name)}</div><div class="meta">${r.d.kid?`👶 ${kidTag(r.d)} · `:''}${gOf(r)==='f' ? '♀' : '♂'} ${persName(r.d)} · ${r.d.level} 级 · 🎂 ${bdayText(r.d)} · 口头禅「${esc(r.d.catch||'')}」 · 心情 ${Math.round(r.d.mood)}</div>
       <div class="links">${links.length ? links.map(({o,v})=>{ const fl = friendLevel(v), rel = relName(r,o); if(rel) return `<span class="lk r3">${rel} · ${esc(o.d.name)}</span>`; return `<span class="lk r${fl.rank}">${fl.rank>=2?'💖 ':fl.rank===1?'🤝 ':''}${esc(o.d.name)} · ${fl.n}</span>`; }).join('') : '<span class="lk">还没有邻居</span>'}</div></div></div>`;
   }).join('');
   const html = `<div class="modal-head"><h2>好朋友</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>
