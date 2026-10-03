@@ -1841,6 +1841,7 @@ function addCoins(n){ S.coins += n; updateCoins(); if(n>0){ sfx.coin(); } }
 function updateCoins(){ $('#coinNum').textContent = S.coins; }
 function fulfil(r, coins){
   r.d.want = null; addCoins(coins); addFriendWithPlayer(r, 2);
+  if(Math.random() < .3) gainTreasure(r);
   r.d.xp += 1;
   if(r.d.xp >= 3){ r.d.xp = 0; r.d.level += 1; r.d.lvPending = true; toast(`${r.d.name} 升到了 ${r.d.level} 级！点${ta(r.d)}挑一个奖励 ⭐`, 'gold'); logNews(`⭐ ${r.d.name} 升到了 ${r.d.level} 级`); confetti(mode==='room'?roomScene:scene, mode==='room'?roomChar.root.position:r.p.root.position); sfx.happy(); }
   else toast(`${r.d.name} 的愿望实现啦！+${coins} 金币`, 'gold');
@@ -3105,19 +3106,97 @@ function resStatus(r){
   if(inEvent(r)) return {e:'✨', t:'忙大事中'};
   return {e:'🚶', t:'在岛上散步'};
 }
+/* =====================================================================
+   关系图 + 宝物
+   ===================================================================== */
+// how a links to o: partner, family, quarrel, then friendship level
+function relInfo(a, o){
+  const v = a.d.friends[o.d.id] || 0, fight = (a.d.want && a.d.want.type==='makeup' && a.d.want.with===o.d.id) || (o.d.want && o.d.want.type==='makeup' && o.d.want.with===a.d.id);
+  if(a.d.partner===o.d.id) return {k:'love', t:a.d.pType==='spouse' ? '💍 夫妻' : '💑 恋人', c:'#FF5E8A', w:5, pri:6, v};
+  if(isFamily(a,o)){ const pa = a.d.parents||[], pb = o.d.parents||[];
+    const t = pa.includes(o.d.id) ? (gOf(o)==='f' ? '👩 妈妈' : '👨 爸爸') : pb.includes(a.d.id) ? (gOf(o)==='f' ? '👧 女儿' : '👦 儿子') : (gOf(o)==='f' ? '👧 姐妹' : '👦 兄弟');
+    return {k:'fam', t, c:'#F2B705', w:4, pri:5, v}; }
+  if(fight) return {k:'fight', t:'💢 吵架中', c:'#6B5B7B', w:3, dash:'7 6', pri:4, v};
+  const fl = friendLevel(v);
+  if(fl.rank===3) return {k:'best', t:'💖 最好的朋友', c:'#FF7A9A', w:4, pri:3, v};
+  if(fl.rank===2) return {k:'good', t:'💗 好朋友', c:'#FFA3B8', w:3, pri:2, v};
+  if(fl.rank===1) return {k:'friend', t:'🤝 朋友', c:'#7CCBA8', w:2, pri:1, v};
+  return {k:'new', t:'刚认识', c:'#CFC7DA', w:1, pri:0, v};
+}
+function openRelChart(r){
+  const all = residents.filter(o=>o!==r).map(o=>({o, i:relInfo(r,o)})).sort((a,b)=>b.i.pri-a.i.pri || b.i.v-a.i.v);
+  const shown = all.slice(0, 12), rest = all.length - shown.length;
+  const W = 360, C = W/2, R = shown.length > 8 ? 132 : 118, nr = 24;
+  const pos = shown.map((x,i)=>{ const a = -Math.PI/2 + i*2*Math.PI/Math.max(shown.length,1); return [C + Math.cos(a)*R, C + Math.sin(a)*R]; });
+  const lines = shown.map((x,i)=>`<line x1="${C}" y1="${C}" x2="${pos[i][0]}" y2="${pos[i][1]}" stroke="${x.i.c}" stroke-width="${x.i.w}" stroke-linecap="round" ${x.i.dash?`stroke-dasharray="${x.i.dash}"`:''}/>`).join('');
+  const node = (d, x, y, rad, idx) => `<g ${idx!=null?`data-rel="${idx}" style="cursor:pointer"`:''}><clipPath id="rc${idx??'c'}"><circle cx="${x}" cy="${y}" r="${rad}"/></clipPath><circle cx="${x}" cy="${y}" r="${rad+3}" fill="#fff" stroke="#3B3355" stroke-width="2"/><image href="${portrait(d)}" x="${x-rad}" y="${y-rad}" width="${rad*2}" height="${rad*2}" clip-path="url(#rc${idx??'c'})" preserveAspectRatio="xMidYMid slice"/></g>`;
+  const nodes = shown.map((x,i)=>{ const [px,py] = pos[i], below = py >= C - 4;
+    return node(x.o.d, px, py, nr, residents.indexOf(x.o)) + `<text x="${px}" y="${below ? py+nr+16 : py-nr-18}" text-anchor="middle" font-size="12" font-weight="700" fill="#3B3355">${esc(x.o.d.name)}</text><text x="${px}" y="${below ? py+nr+30 : py-nr-5}" text-anchor="middle" font-size="11" fill="#6B5B7B">${x.i.t}</text>`; }).join('');
+  const legend = [['#FF5E8A','恋人/夫妻'],['#F2B705','家人'],['#FF7A9A','好朋友'],['#7CCBA8','朋友'],['#6B5B7B','吵架中']].map(([c,t])=>`<span class="lk" style="border-color:${c}"><span style="color:${c}">●</span> ${t}</span>`).join(' ');
+  openModal(modalHead(`💞 ${esc(r.d.name)}的关系图`) + (shown.length ? `<svg viewBox="-20 -20 ${W+40} ${W+40}" style="width:100%;max-width:420px;display:block;margin:0 auto" role="img" aria-label="${esc(r.d.name)}的人际关系">${lines}${nodes}${node(r.d, C, C, 34, null)}</svg>` : `<p class="tip">${esc(r.d.name)} 刚来岛上，还没有认识的人。多让大家聊聊天吧！</p>`)
+    + `<div class="links" style="justify-content:center;margin-top:8px">${legend}</div>`
+    + (rest > 0 ? `<p class="tip">还有 ${rest} 位居民和${ta(r.d)}不太熟。点头像可以看他们的关系图。</p>` : `<p class="tip">点头像可以看他们的关系图。</p>`));
+  $('#modalRoot').querySelectorAll('[data-rel]').forEach(g=>g.addEventListener('click', ()=>{ sfx.pop(); openRelChart(residents[+g.dataset.rel]); }));
+}
+
+const TREASURES = [
+  {id:'shell', e:'🐚', n:'彩虹贝壳', t:'在海滩捡到的，贴在耳边能听见海浪声。'},
+  {id:'star', e:'⭐', n:'掉下来的星星', t:'昨晚从天上掉下来的，摸起来暖暖的。'},
+  {id:'clover', e:'🍀', n:'四叶草', t:'据说找到它的人一整年都会很幸运。'},
+  {id:'marble', e:'🔮', n:'玻璃弹珠', t:'对着光看，里面有一朵小小的花。'},
+  {id:'key', e:'🗝️', n:'神秘钥匙', t:'不知道能打开哪扇门。'},
+  {id:'feather', e:'🪶', n:'金色羽毛', t:'送子鸟飞过时掉下来的。'},
+  {id:'gem', e:'💎', n:'闪闪宝石', t:'比糖果还亮，大家都想看一眼。'},
+  {id:'pearl', e:'🦪', n:'珍珠', t:'渔夫在港口附近找到的。'},
+  {id:'snow', e:'❄️', n:'不会化的雪花', t:'放在手心也不会化，好神奇。'},
+  {id:'leaf', e:'🍁', n:'心形红叶', t:'秋天最漂亮的一片叶子。'},
+  {id:'sakura', e:'🌸', n:'樱花书签', t:'夹在书里，翻开就有春天的味道。'},
+  {id:'bell', e:'🔔', n:'许愿铃铛', t:'摇一摇，好像真的有愿望实现了。'},
+  {id:'map', e:'🗺️', n:'藏宝图', t:'上面画着小岛，还有一个大大的叉。'},
+  {id:'coin', e:'🪙', n:'古老金币', t:'很久以前的岛民留下来的。'},
+  {id:'egg', e:'🥚', n:'彩绘蛋', t:'画着笑脸，谁也不舍得吃。'},
+  {id:'music', e:'🎼', n:'旧乐谱', t:'弹出来是一首没人听过的歌。'},
+  {id:'compass', e:'🧭', n:'指南针', t:'指针总是指向最好的朋友家。'},
+  {id:'moon', e:'🌙', n:'月光石', t:'晚上会发出淡淡的蓝光。'},
+  {id:'teddy', e:'🧸', n:'旧泰迪熊', t:'谁小时候最喜欢的玩具？'},
+  {id:'crown', e:'👑', n:'小皇冠', t:'戴上它就是今天的国王！'},
+  {id:'rainbow', e:'🌈', n:'装在瓶子里的彩虹', t:'雨后在广场接到的。'},
+  {id:'ticket', e:'🎫', n:'金色门票', t:'可以去任何地方，就是不知道是哪里。'},
+  {id:'fossil', e:'🦴', n:'恐龙化石', t:'在花田挖出来的，好大一块！'},
+  {id:'orange', e:'🍊', n:'卡皮巴拉的橘子', t:'卡皮巴拉顶过的橘子，舍不得吃。'},
+];
+function gainTreasure(r){
+  S.treasures = S.treasures || {};
+  const notYet = TREASURES.filter(x=>!S.treasures[x.id]), it = (notYet.length && Math.random() < .75) ? pick(notYet) : pick(TREASURES), first = !S.treasures[it.id];
+  S.treasures[it.id] = (S.treasures[it.id]||0) + 1;
+  toast(`${r.d.name} 送给你一件宝物：${it.e} ${it.n}${first ? '（新发现！）' : ''}`, 'gold');
+  if(first) logNews(`💎 ${r.d.name} 送给岛主一件宝物「${it.n}」`);
+  return it;
+}
+function openTreasures(sel){
+  S.treasures = S.treasures || {};
+  const got = TREASURES.filter(x=>S.treasures[x.id]).length, it = sel && TREASURES.find(x=>x.id===sel && S.treasures[x.id]);
+  openModal(modalHead(`💎 宝物箱 · ${got}/${TREASURES.length}`) + `<p class="tip">帮居民实现心愿时，有时会收到宝物。集齐全部 ${TREASURES.length} 件吧！</p>`
+    + (it ? `<div class="sec" style="text-align:center"><span style="font-size:44px">${it.e}</span><br><b>${it.n}</b> × ${S.treasures[it.id]}<br><span class="tip">${it.t}</span></div>` : '')
+    + `<div class="grid-items">${TREASURES.map(x=>S.treasures[x.id] ? `<button class="toy item" data-tr="${x.id}"><span class="ic">${x.e}</span>${x.n}${S.treasures[x.id]>1?`<span class="cnt">${S.treasures[x.id]}</span>`:''}</button>` : `<button class="toy item" disabled style="opacity:.45"><span class="ic">❔</span>还没找到</button>`).join('')}</div>`, b=>{
+    if(b && b.dataset.tr) openTreasures(b.dataset.tr);
+  });
+}
+
 function openApartment(){
   const night = isNight(), list = residents.slice().sort((a,b)=>(b.d.isPlayer?1:0)-(a.d.isPlayer?1:0) || ((b.d.want||b.d.lvPending)?1:0)-((a.d.want||a.d.lvPending)?1:0));
   const floors = []; for(let i=0;i<list.length;i+=5) floors.push(list.slice(i,i+5));
   const card = r=>{ const d = r.d, st = resStatus(r), need = d.lvPending ? '⭐' : d.want ? wantEmoji(d.want) : '';
     return `<button class="apt-win ${night && (r.state==='home' || r.state==='visit') ? 'lit' : ''}" data-apt="${residents.indexOf(r)}">${need ? `<span class="apt-need">${need}</span>` : ''}<img src="${portrait(d)}" alt=""><span class="apt-name">${d.isPlayer ? '⭐' : ''}${esc(d.name)}</span><span class="apt-st">${st.e} ${esc(st.t)}</span></button>`; };
   openModal(`<div class="modal-head"><h2>🏢 心心公寓</h2><button class="toy close" data-close="1" style="margin-left:auto" aria-label="关闭">×</button></div>
-    <div class="row-btns" style="margin-bottom:10px"><button class="toy pill-btn hot" data-me="1">🙋 ${playerRes() ? '我自己' : '捏一个我自己'}</button><button class="toy pill-btn" data-design="1">🎨 设计工坊</button><button class="toy pill-btn" data-album="1">📷 相册</button></div>
+    <div class="row-btns" style="margin-bottom:10px"><button class="toy pill-btn hot" data-me="1">🙋 ${playerRes() ? '我自己' : '捏一个我自己'}</button><button class="toy pill-btn" data-design="1">🎨 设计工坊</button><button class="toy pill-btn" data-album="1">📷 相册</button><button class="toy pill-btn" data-treasure="1">💎 宝物箱</button></div>
     <div class="apt ${night ? 'night' : ''}"><div class="apt-roof">心心公寓 · ${residents.length}/${POP_MAX} 位居民</div>${floors.map(f=>`<div class="apt-floor">${f.map(card).join('')}</div>`).join('')}<div class="apt-door">🚪</div></div>
     <p class="tip">${night ? '晚上亮着灯的窗户，就是在家里的居民。' : '头上冒着图标的居民需要你帮忙。点窗户去找他。'}</p>`, b=>{
     if(!b) return;
     if(b.dataset.me){ openMe(); return; }
     if(b.dataset.design){ openDesigns(); return; }
     if(b.dataset.album){ openAlbum(); return; }
+    if(b.dataset.treasure){ openTreasures(); return; }
     if(b.dataset.apt){ const r = residents[+b.dataset.apt]; closeModal(); if(r.state==='home' || r.state==='visit'){ enterRoom(r.state==='visit' ? (byId(r.visiting) || r) : r); } else { select(r); } }
   });
 }
@@ -3485,7 +3564,7 @@ function renderSheet(){
   el.innerHTML = `
     <div class="sheet-head">
       <div class="face-dot" ${hairDot(d)}></div>
-      <div><h2>${esc(d.name)}</h2><div class="tags"><span class="tag">${gOf(r)==='f' ? '👧 女生' : '👦 男生'}</span><span class="tag">${persName(d)}</span>${jobOf(d) ? `<button class="tag tagbtn" data-act="job">${jobOf(d).e} ${jobOf(d).n}</button>` : ''}<span class="tag">${d.level} 级</span><span class="tag">🎂 ${bdayText(d)}</span>${d.nick?`<span class="tag">外号「${esc(d.nick)}」</span>`:''}<span class="tag">最爱 ${FOODS[d.fav].e}</span><span class="tag">不爱 ${FOODS[d.dislike].e}</span>${pt?`<span class="tag">${d.pType==='spouse'?'💍 夫妻':'💑 恋人'} ${esc(pt.d.name)}</span>`:''}${d.kid?`<span class="tag">👶 ${kidTag(d)}</span>`:''}${pets.filter(pw=>pw.d.owner===d.id).map(pw=>`<span class="tag">${PET_KINDS[pw.d.kind].e} ${esc(pw.d.name)}</span>`).join('')}</div></div>
+      <div><h2>${esc(d.name)}</h2><div class="tags"><span class="tag">${gOf(r)==='f' ? '👧 女生' : '👦 男生'}</span><span class="tag">${persName(d)}</span>${jobOf(d) ? `<button class="tag tagbtn" data-act="job">${jobOf(d).e} ${jobOf(d).n}</button>` : ''}<span class="tag">${d.level} 级</span><span class="tag">🎂 ${bdayText(d)}</span>${d.nick?`<span class="tag">外号「${esc(d.nick)}」</span>`:''}<span class="tag">最爱 ${FOODS[d.fav].e}</span><span class="tag">不爱 ${FOODS[d.dislike].e}</span>${residents.length>1?`<button class="tag tagbtn" data-act="rel">💞 关系图</button>`:''}${pt?`<span class="tag">${d.pType==='spouse'?'💍 夫妻':'💑 恋人'} ${esc(pt.d.name)}</span>`:''}${d.kid?`<span class="tag">👶 ${kidTag(d)}</span>`:''}${pets.filter(pw=>pw.d.owner===d.id).map(pw=>`<span class="tag">${PET_KINDS[pw.d.kind].e} ${esc(pw.d.name)}</span>`).join('')}</div></div>
       <button class="toy close" data-close="1" aria-label="关闭">×</button>
     </div>
     <div class="bars">
@@ -3550,6 +3629,7 @@ $('#sheet').addEventListener('click', e=>{
       renderSheet(); return;
     }
     if(a==='home'){ enterRoom(r); return; }
+    if(a==='rel'){ openRelChart(r); return; }
     if(a==='job' && d.kid){ toast(kidAge(d) >= 6 ? `${d.name} 还在上学呢` : `${d.name} 还太小啦`); return; }
     if(a==='job' && d.isPlayer){ toast('你是这座小岛的岛主！'); return; }
     if(a==='edit'){ closeSheet(); openEditor(r); return; }
@@ -4362,7 +4442,7 @@ applySeason(); buildHolidayDecor(); applyHolidayHats();
 fixCouples();
 spawnVisitor();
 updateCoins(); updateNewsDot(); onResize(); applySky(); loop();
-if(/[?&]debug\b/.test(location.search)) window.__isle = {get S(){ return S; }, get residents(){ return residents; }, get ev(){ return ev; }, get show(){ return show; }, get visitor(){ return visitor; }, quarrel, rebuildChar, cam, loopStep, openApartment, openMiniGame, openSleepFix, doActivity, partyHourly, partyMorning, openDesigns, openDesignEditor, autoPhoto, applySeason, holidayMorning, jobMorning, openMe, maybeInvite, convoFor, portrait, buildHolidayDecor, applyHolidayHats, restockShop, renderer, scene, frame, get birth(){ return birth; }, haveBaby, get isleR(){ return isleR; }, get isleRTarget(){ return isleRTarget; }, get pets(){ return pets; }, newPetData, addPet, get paused(){ return paused; }, checkExpand, applyIsleLevel, canRomance, parentsLine, music(){ return {mStep, musicOn, soundOn, ctx: actx && actx.state}; }, voices(){ return zhVoices.map(v=>v.name+" | "+v.lang); }, pickVoice, speechText, natPitch, startParty, startConcert, openConcert, openAsk, openVisitor, spawnVisitor, makeVisitor, applyLv, openPark, openCafe, openLoc, songSeq, openShop, openRPS, takePhoto, openEditor, openPets, openPetEditor, openPetSheet, get pets(){ return pets; }, step(secs){ for(let i=0;i<secs*30;i++){ simT += 1/30; frame(1/30, simT); } }, select, startEvent, morning, enterRoom, openNews, showDream, byId};
+if(/[?&]debug\b/.test(location.search)) window.__isle = {get S(){ return S; }, get residents(){ return residents; }, get ev(){ return ev; }, get show(){ return show; }, get visitor(){ return visitor; }, quarrel, rebuildChar, cam, loopStep, openApartment, openRelChart, openTreasures, gainTreasure, openMiniGame, openSleepFix, doActivity, partyHourly, partyMorning, openDesigns, openDesignEditor, autoPhoto, applySeason, holidayMorning, jobMorning, openMe, maybeInvite, convoFor, portrait, buildHolidayDecor, applyHolidayHats, restockShop, renderer, scene, frame, get birth(){ return birth; }, haveBaby, get isleR(){ return isleR; }, get isleRTarget(){ return isleRTarget; }, get pets(){ return pets; }, newPetData, addPet, get paused(){ return paused; }, checkExpand, applyIsleLevel, canRomance, parentsLine, music(){ return {mStep, musicOn, soundOn, ctx: actx && actx.state}; }, voices(){ return zhVoices.map(v=>v.name+" | "+v.lang); }, pickVoice, speechText, natPitch, startParty, startConcert, openConcert, openAsk, openVisitor, spawnVisitor, makeVisitor, applyLv, openPark, openCafe, openLoc, songSeq, openShop, openRPS, takePhoto, openEditor, openPets, openPetEditor, openPetSheet, get pets(){ return pets; }, step(secs){ for(let i=0;i<secs*30;i++){ simT += 1/30; frame(1/30, simT); } }, select, startEvent, morning, enterRoom, openNews, showDream, byId};
 setTimeout(()=>toast('点一点小人，看看他们想要什么吧！'), 600);
 setTimeout(()=>toast('点房子可以进屋装扮哦'), 3800);
 setTimeout(()=>toast('居民会交朋友、吵架、谈恋爱……多留意他们的心愿 💘'), 7000);
