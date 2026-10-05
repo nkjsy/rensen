@@ -89,6 +89,7 @@ button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 .ft-singles{display:flex;flex-wrap:wrap;gap:8px}
 .pot{background:#fff;border:3px dashed var(--line);border-radius:14px;padding:10px 12px;margin:12px 0 4px;font-size:15px}
 .card .row-btns{gap:4px}.card .pill-btn{padding:4px 8px;font-size:13px}
+#updBar{position:fixed;left:50%;top:calc(84px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:35;background:#FFF6D6;border:3px solid var(--ink);border-radius:18px;box-shadow:0 5px 0 var(--ink);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;font-family:var(--display);font-size:17px;width:max-content;max-width:calc(100% - 32px);box-sizing:border-box;animation:pop .35s cubic-bezier(.3,1.6,.5,1)}
 .dot{position:absolute;top:-5px;right:-5px;width:14px;height:14px;border-radius:50%;background:var(--coral);border:2px solid var(--ink)}
 .say{margin:10px 0 0;background:#fff;border:2px solid var(--line);border-radius:14px;padding:7px 12px;font-size:15px;position:relative}
 .want-acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:-4px 0 12px;font-size:14px;color:var(--ink-soft)}
@@ -4733,7 +4734,28 @@ updateSeen();
 fixCouples();
 spawnVisitor();
 updateCoins(); updateNewsDot(); onResize(); applySky(); loop();
-if(/[?&]debug\b/.test(location.search)) window.__isle = {get S(){ return S; }, get residents(){ return residents; }, get ev(){ return ev; }, get show(){ return show; }, get visitor(){ return visitor; }, quarrel, rebuildChar, cam, loopStep, openSaveIO, loadSaveText, openBook, openFamilyTree, openKitchen, openSchool, startTrip, tripMorning, birthdayAge, giveDream, checkDream, milestone, updateSeen, schoolMorning, openApartment, openRelChart, openTreasures, gainTreasure, openMiniGame, openSleepFix, doActivity, partyHourly, partyMorning, openDesigns, openDesignEditor, autoPhoto, applySeason, holidayMorning, jobMorning, openMe, maybeInvite, convoFor, portrait, buildHolidayDecor, applyHolidayHats, restockShop, renderer, scene, frame, get birth(){ return birth; }, haveBaby, get isleR(){ return isleR; }, get isleRTarget(){ return isleRTarget; }, get pets(){ return pets; }, newPetData, addPet, get paused(){ return paused; }, checkExpand, applyIsleLevel, canRomance, parentsLine, music(){ return {mStep, musicOn, soundOn, ctx: actx && actx.state}; }, voices(){ return zhVoices.map(v=>v.name+" | "+v.lang); }, pickVoice, speechText, natPitch, startParty, startConcert, openConcert, openAsk, openVisitor, spawnVisitor, makeVisitor, applyLv, openPark, openCafe, openLoc, songSeq, openShop, openRPS, takePhoto, openEditor, openPets, openPetEditor, openPetSheet, get pets(){ return pets; }, step(secs){ for(let i=0;i<secs*30;i++){ simT += 1/30; frame(1/30, simT); } }, select, startEvent, morning, enterRoom, openNews, showDream, byId};
+/* ---------------- live update ---------------- */
+// Every few minutes (and whenever you come back to the tab) the game checks whether a newer version
+// has been published. If so it offers a one-tap update; the island is saved first, so nothing is lost.
+let pageBase = null;
+async function pageHash(){
+  const r = await fetch(location.pathname + '?v=' + Date.now(), {cache:'no-store'}); if(!r.ok) throw new Error('offline');
+  const t = await r.text(); let h = 0; for(let i=0;i<t.length;i++) h = (h*31 + t.charCodeAt(i)) | 0; return h + ':' + t.length;
+}
+async function checkUpdate(){
+  if(location.protocol==='file:') return; // opening index.html directly: just reload the file yourself
+  try{ const h = await pageHash(); if(pageBase===null){ pageBase = h; return; } if(h !== pageBase) showUpdateBar(); }catch(e){}
+}
+function showUpdateBar(){
+  if($('#updBar')) return;
+  const el = document.createElement('div'); el.id = 'updBar';
+  el.innerHTML = '<span>🎁 小岛有新内容啦！</span><button class="toy pill-btn hot" data-upd="go">立即更新</button><button class="toy pill-btn" data-upd="later">稍后</button>';
+  el.addEventListener('click', e=>{ const b = e.target.closest('[data-upd]'); if(!b) return; if(b.dataset.upd==='go'){ save(); el.innerHTML = '<span>更新中……进度已保存</span>'; setTimeout(()=>location.reload(), 300); } else { el.remove(); setTimeout(checkUpdate, 10*60*1000); } });
+  document.body.appendChild(el); sfx.happy();
+}
+checkUpdate(); setInterval(checkUpdate, 3*60*1000);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) checkUpdate(); });
+if(/[?&]debug\b/.test(location.search)) window.__isle = {get S(){ return S; }, get residents(){ return residents; }, get ev(){ return ev; }, get show(){ return show; }, get visitor(){ return visitor; }, quarrel, rebuildChar, cam, loopStep, checkUpdate, openSaveIO, loadSaveText, openBook, openFamilyTree, openKitchen, openSchool, startTrip, tripMorning, birthdayAge, giveDream, checkDream, milestone, updateSeen, schoolMorning, openApartment, openRelChart, openTreasures, gainTreasure, openMiniGame, openSleepFix, doActivity, partyHourly, partyMorning, openDesigns, openDesignEditor, autoPhoto, applySeason, holidayMorning, jobMorning, openMe, maybeInvite, convoFor, portrait, buildHolidayDecor, applyHolidayHats, restockShop, renderer, scene, frame, get birth(){ return birth; }, haveBaby, get isleR(){ return isleR; }, get isleRTarget(){ return isleRTarget; }, get pets(){ return pets; }, newPetData, addPet, get paused(){ return paused; }, checkExpand, applyIsleLevel, canRomance, parentsLine, music(){ return {mStep, musicOn, soundOn, ctx: actx && actx.state}; }, voices(){ return zhVoices.map(v=>v.name+" | "+v.lang); }, pickVoice, speechText, natPitch, startParty, startConcert, openConcert, openAsk, openVisitor, spawnVisitor, makeVisitor, applyLv, openPark, openCafe, openLoc, songSeq, openShop, openRPS, takePhoto, openEditor, openPets, openPetEditor, openPetSheet, get pets(){ return pets; }, step(secs){ for(let i=0;i<secs*30;i++){ simT += 1/30; frame(1/30, simT); } }, select, startEvent, morning, enterRoom, openNews, showDream, byId};
 setTimeout(()=>toast('点一点小人，看看他们想要什么吧！'), 600);
 setTimeout(()=>toast('点房子可以进屋装扮哦'), 3800);
 setTimeout(()=>toast('居民会交朋友、吵架、谈恋爱……多留意他们的心愿 💘'), 7000);
