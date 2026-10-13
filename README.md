@@ -1,3 +1,7 @@
+> **English branch** — this branch is the English version of the game (all text, speech and songs in English), used for the CrazyGames release. The Chinese original lives on `main` and on GitHub Pages.
+>
+> 这是英文版分支（游戏文字、语音、唱歌都是英文），用于发布到 CrazyGames。中文原版在 `main` 分支和 GitHub Pages 上，不受影响。
+
 # 心心小岛
 
 一个受《朋友收集 梦想生活》启发的 3D 网页小游戏：在一座小岛上收留可爱的居民，照顾他们的日常、帮他们交朋友、布置他们的小屋。

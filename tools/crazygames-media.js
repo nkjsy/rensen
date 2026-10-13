@@ -24,17 +24,17 @@ async function setup(page, W, H){
   await page.evaluate((css)=>{
     const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
     window.__drawTitle = (g, W, H, alpha)=>{
-      const k = Math.round(Math.min(W, H*1.1)*.16), F = '"Microsoft YaHei UI","Microsoft YaHei","PingFang SC",sans-serif';
+      const k = Math.round(Math.min(W, H*1.1)*.135), F = '"Fredoka",' + '"Microsoft YaHei UI",sans-serif';
       g.save(); g.globalAlpha = alpha; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
       g.translate(W/2, H*(H > W ? .1 : .14)); g.rotate(-3*Math.PI/180);
-      g.font = '900 ' + k + 'px ' + F;
-      g.fillStyle = 'rgba(59,51,85,.35)'; g.fillText('心心小岛', 0, k*.16);
-      g.lineWidth = k*.2; g.strokeStyle = '#3B3355'; g.strokeText('心心小岛', 0, k*.08);
-      g.lineWidth = k*.14; g.strokeStyle = '#FFFFFF'; g.strokeText('心心小岛', 0, 0);
-      g.fillStyle = '#FF6F86'; g.fillText('心心小岛', 0, 0);
-      g.rotate(3*Math.PI/180); g.font = '900 ' + Math.round(k*.3) + 'px ' + F;
+      g.font = '700 ' + k + 'px ' + F;
+      g.fillStyle = 'rgba(59,51,85,.35)'; g.fillText('Heart Island', 0, k*.16);
+      g.lineWidth = k*.2; g.strokeStyle = '#3B3355'; g.strokeText('Heart Island', 0, k*.08);
+      g.lineWidth = k*.14; g.strokeStyle = '#FFFFFF'; g.strokeText('Heart Island', 0, 0);
+      g.fillStyle = '#FF6F86'; g.fillText('Heart Island', 0, 0);
+      g.rotate(3*Math.PI/180); g.font = '700 ' + Math.round(k*.3) + 'px ' + F;
       if(g.letterSpacing !== undefined) g.letterSpacing = Math.round(k*.06) + 'px';
-      g.lineWidth = k*.07; g.strokeStyle = '#3B3355'; g.strokeText('HEART ISLAND', 0, k*.78); g.fillStyle = '#FFFFFF'; g.fillText('HEART ISLAND', 0, k*.78);
+      g.lineWidth = k*.07; g.strokeStyle = '#3B3355'; 
       g.restore(); };
     const cv = document.createElement('canvas'); cv.id = 'cgTitle'; cv.width = innerWidth; cv.height = innerHeight; cv.style.cssText = 'position:fixed;inset:0;z-index:50;pointer-events:none;width:100%;height:100%';
     document.body.appendChild(cv); window.__drawTitle(cv.getContext('2d'), cv.width, cv.height, 1);
