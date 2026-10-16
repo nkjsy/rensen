@@ -170,6 +170,10 @@ textarea.text-in{width:100%;box-sizing:border-box;min-height:100px;resize:vertic
 .want .big{font-size:28px}
 .want.none{background:var(--panel-2);border-color:var(--line);color:var(--ink-soft)}
 .acts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sheet .acts{position:sticky;bottom:-16px;background:var(--panel);padding:8px 0 16px;margin-bottom:-16px;box-shadow:0 -8px 8px -4px var(--panel)}
+@media (max-height:640px){.sheet{max-height:80%}}
+body:has(#modalRoot .modal-bg) #toasts{top:calc(6px + env(safe-area-inset-top,0px))}
+body:has(#modalRoot .modal-bg) .toast{font-size:15px;padding:5px 12px}
 .act{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 6px;font-size:14px}
 .act .ic{font-size:24px;line-height:1}
 .ed-tabs{margin-bottom:10px}.ed-tabs .tab{padding:4px 12px 6px;font-size:15px}
@@ -512,7 +516,7 @@ function loadState(){
   try{ const raw = store('xx_save'); if(raw){ const s = JSON.parse(raw); if(s && Array.isArray(s.residents)) return s; } }catch(e){}
   return freshState();
 }
-function save(){ try{ S.residents = residents.map(r=>r.d); store('xx_save', JSON.stringify(S)); }catch(e){} }
+function save(){ try{ S.lastSeen = Date.now(); S.residents = residents.map(r=>r.d); store('xx_save', JSON.stringify(S)); }catch(e){} }
 
 /* ---------------- audio ---------------- */
 let actx = null;
@@ -611,7 +615,7 @@ function speakWith(voice, text){
 /* ---------------- three basics ---------------- */
 const canvas = $('#game');
 const renderer = new T.WebGLRenderer({canvas, antialias:true});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 1.5));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = T.PCFSoftShadowMap;
 
@@ -1766,7 +1770,7 @@ function endChat(r, natural){
     // a crush
     if((r.d.friends[o.d.id]||0) >= 80 && canRomance(r,o) && Math.random() < .3){
       const [a,b] = Math.random()<.5 ? [r,o] : [o,r];
-      if(!hasSocialWant(a)){ a.d.want = {type:'love', with:b.d.id}; toast(`${a.d.name} seems to have a crush on ${b.d.name}! Go ask about it 💘`, 'pink'); logNews(`💘 ${a.d.name} has a secret crush on ${b.d.name}`); save(); }
+      if(!hasSocialWant(a)){ a.d.want = {type:'love', with:b.d.id, since:S.day}; toast(`${a.d.name} seems to have a crush on ${b.d.name}! Go ask about it 💘`, 'pink'); logNews(`💘 ${a.d.name} has a secret crush on ${b.d.name}`); save(); }
     }
     if(natural && !isNight() && r.d.partner!==o.d.id && (r.d.friends[o.d.id]||0) >= 30 && Math.random() < .22 && doActivity(r, o)) return;
     if(natural && r.d.partner===o.d.id && S.hour < 18.5 && !isNight() && Math.random() < .35){ const k = pick(dateLocs()); startDate(r, o, k); logNews(`💕 ${r.d.name} and ${o.d.name} went on a date at the ${LOCS[k].n}`); return; }
@@ -1915,13 +1919,47 @@ function needsTick(r, secs){
 }
 
 /* ---------------- rewards ---------------- */
+/* ---------------- island projects: big coin sinks with lasting perks ---------------- */
+const PROJECTS = [
+  {k:'beds', e:'🛏️', n:'Cozy Beds', d:'Everyone wakes up happy (mood at least 80 each morning)', p:400},
+  {k:'stoves', e:'🍳', n:'Better Stoves', d:'Every meal fills 10 more', p:600},
+  {k:'loyalty', e:'🏷️', n:'Loyalty Cards', d:'Daily deal is 55% off and every shop shelf holds one more item', p:800},
+  {k:'academy', e:'🎓', n:'Star Academy', d:'Raises the resident level cap (10 → 15 → 20)', tiers:[1500, 3000]}
+];
+const BANQUET_COST = 300;
+function projLv(k){ return (S.proj && S.proj[k]) || 0; }
+function levelCap(){ return 10 + projLv('academy')*5; }
+function openProjects(){
+  const rows = PROJECTS.map(pr=>{
+    const lv = projLv(pr.k), max = pr.tiers ? pr.tiers.length : 1, done = lv >= max, cost = pr.tiers ? pr.tiers[Math.min(lv, max-1)] : pr.p;
+    return `<div class="card"><span class="ic">${pr.e}</span><span class="nm">${pr.n}${pr.tiers ? ` ${lv}/${max}` : ''}</span><span class="own" style="font-size:12px">${pr.d}</span><button class="toy buy" data-proj="${pr.k}" ${done || S.coins<cost ? 'disabled' : ''}>${done ? 'Done ✓' : `<span class="coin"></span>${cost}`}</button></div>`;
+  }).join('');
+  openModal(`<div class="modal-head"><h2>🏗️ Island projects</h2><div class="coins toy" style="margin-left:auto"><span class="coin"></span>${S.coins}</div><button class="toy close" data-close="1" aria-label="Close">×</button></div>
+    <p class="tip">Spend your coins on lasting improvements for the whole island.</p>
+    <div class="shop-grid">${rows}</div>
+    <div class="row-btns" style="margin-top:14px"><button class="toy pill-btn hot" data-banquet="1" ${S.coins<BANQUET_COST ? 'disabled' : ''}>🍽️ Island banquet: fill everyone up and cheer them up (${BANQUET_COST} coins)</button></div>`, b=>{
+    if(!b) return;
+    if(b.dataset.proj){
+      const pr = PROJECTS.find(x=>x.k===b.dataset.proj); if(!pr) return;
+      const lv = projLv(pr.k), max = pr.tiers ? pr.tiers.length : 1; if(lv >= max) return;
+      const cost = pr.tiers ? pr.tiers[lv] : pr.p; if(S.coins < cost) return;
+      S.coins -= cost; S.proj = S.proj || {}; S.proj[pr.k] = lv+1; updateCoins(); sfx.happy(); confetti(scene, new T.Vector3(0,0,0));
+      toast(`${pr.e} ${pr.n} finished!`, 'gold'); logNews(`🏗️ Island project finished: ${pr.n}`); save(); openProjects();
+    }
+    if(b.dataset.banquet){
+      if(S.coins < BANQUET_COST) return; S.coins -= BANQUET_COST; updateCoins();
+      residents.forEach(r=>{ if(r.d.isPlayer) return; r.d.full = 100; r.d.mood = clamp(r.d.mood+25,0,100); r.d.hungryDays = 0; if(r.state!=='home') beHappy(r, '😋', 2); });
+      sfx.happy(); toast('🍽️ A big banquet! Everyone is full and happy', 'pink'); save(); openProjects();
+    }
+  });
+}
 function addCoins(n){ S.coins += n; updateCoins(); if(n>0){ sfx.coin(); } }
 function updateCoins(){ $('#coinNum').textContent = S.coins; }
 function fulfil(r, coins){
   if(r.d.want && !['food','acc','cloth'].includes(r.d.want.type)) remember(r, 'help', r.d.want.type);
   r.d.want = null; addCoins(coins); addFriendWithPlayer(r, 2); task('help');
   if(Math.random() < .3) gainTreasure(r);
-  r.d.xp += 1;
+  if(r.d.level < levelCap()) r.d.xp += 1;
   if(r.d.xp >= 3){ r.d.xp = 0; r.d.level += 1; r.d.lvPending = true; toast(`${r.d.name} reached level ${r.d.level}! Tap ${ta(r.d)} to pick a reward ⭐`, 'gold'); logNews(`⭐ ${r.d.name} reached level ${r.d.level}`); confetti(mode==='room'?roomScene:scene, mode==='room'?roomChar.root.position:r.p.root.position); sfx.happy(); }
   else toast(`${r.d.name}'s wish came true! +${coins} coins`, 'gold');
   save();
@@ -2606,7 +2644,7 @@ function openSalon(){
 
 /* ---------------- more places: ramen shop, library, pet park, sports field, campfire, pool ---------------- */
 function addXp(r, n){
-  r.d.xp += n;
+  if(r.d.level < levelCap()) r.d.xp += n;
   if(r.d.xp >= 3){ r.d.xp = 0; r.d.level += 1; r.d.lvPending = true; toast(`${r.d.name} reached level ${r.d.level}! Tap ${ta(r.d)} to pick a reward ⭐`, 'gold'); logNews(`⭐ ${r.d.name} reached level ${r.d.level}`); sfx.happy(); }
 }
 function openRamen(){
@@ -3321,22 +3359,23 @@ function restockShop(){
   const sh = {day:S.day, items:{}, stock:{}, special:null};
   Object.keys(SHOP_N).forEach(tab=>{
     const keys = Object.entries(shopCat(tab)).filter(([k,v])=>!v.cafe && !v.ramen && !v.holiday && k!=='tee').map(([k])=>k);
-    sh.items[tab] = shuffle(keys).slice(0, SHOP_N[tab]); sh.stock[tab] = {}; sh.items[tab].forEach(k=>sh.stock[tab][k] = ri(2,4));
+    sh.items[tab] = shuffle(keys).slice(0, SHOP_N[tab] + (projLv('loyalty') ? 1 : 0)); sh.stock[tab] = {}; sh.items[tab].forEach(k=>sh.stock[tab][k] = ri(2,4));
   });
   const st = pick(Object.keys(SHOP_N)); sh.special = {tab:st, key:pick(sh.items[st])};
   S.shop = sh;
 }
-function shopPrice(tab, k){ const v = shopCat(tab)[k]; return S.shop && S.shop.special && S.shop.special.tab===tab && S.shop.special.key===k ? Math.round(v.p*.6) : v.p; }
+function shopPrice(tab, k){ const v = shopCat(tab)[k]; return S.shop && S.shop.special && S.shop.special.tab===tab && S.shop.special.key===k ? Math.round(v.p*(projLv('loyalty') ? .45 : .6)) : v.p; }
 function openShop(tab){
   if(tab) shopTab = tab;
   if(!S.shop || S.shop.day !== S.day) restockShop();
   const cat = shopCat(shopTab), inv = S.inv[shopTab] = S.inv[shopTab] || {}, sh = S.shop, keys = sh.items[shopTab] || [];
   const html = `<div class="modal-head"><h2>Shop</h2><div class="coins toy" style="margin-left:auto"><span class="coin"></span>${S.coins}</div><button class="toy close" data-close="1" aria-label="Close">×</button></div>\n    <div class="tabs">${[['food','Food'],['acc','Gifts'],['cloth','Clothes'],['furn','Furniture']].map(([k,n])=>`<button class="toy tab ${k===shopTab?'on':''}" data-tab="${k}">${n}${sh.special.tab===k?' 🏷️':''}</button>`).join('')}</div>
-    <div class="shop-grid">${keys.map(k=>{ const v = cat[k], left = sh.stock[shopTab][k], pr = shopPrice(shopTab,k), sp = pr < v.p; return `<div class="card">${sp ? '<span class="sale">Today\'s deal</span>' : ''}<span class="ic">${v.e}</span><span class="nm">${v.n}</span><span class="own">Have ${inv[k]||0} · Left ${left}</span><button class="toy buy" data-buy="${k}" ${S.coins<pr || left<=0 ? 'disabled' : ''}><span class="coin"></span>${sp ? `<s>${v.p}</s> ` : ''}${left<=0 ? 'Sold out' : pr}</button></div>`; }).join('')}</div>\n    <div class="row-btns" style="margin-top:12px"><button class="toy pill-btn" data-kitchen="1">🍳 Go to the kitchen and cook</button></div><p style="font-size:13px;color:var(--ink-soft);margin:14px 0 0">🛒 New stock arrives every morning in limited amounts, plus one item at 40% off. ${shopTab==='food' ? 'Coffee and bubble tea are at the café, ramen and sushi at the ramen shop.' : shopTab==='cloth' ? 'Clothes you buy can be put on residents under "Give a gift".' : ''}</p>`;
+    <div class="shop-grid">${keys.map(k=>{ const v = cat[k], left = sh.stock[shopTab][k], pr = shopPrice(shopTab,k), sp = pr < v.p; return `<div class="card">${sp ? '<span class="sale">Today\'s deal</span>' : ''}<span class="ic">${v.e}</span><span class="nm">${v.n}</span><span class="own">Have ${inv[k]||0} · Left ${left}</span><button class="toy buy" data-buy="${k}" ${S.coins<pr || left<=0 ? 'disabled' : ''}><span class="coin"></span>${sp ? `<s>${v.p}</s> ` : ''}${left<=0 ? 'Sold out' : pr}</button></div>`; }).join('')}</div>\n    <div class="row-btns" style="margin-top:12px"><button class="toy pill-btn" data-kitchen="1">🍳 Go to the kitchen and cook</button> <button class="toy pill-btn" data-projects="1">🏗️ Island projects</button></div><p style="font-size:13px;color:var(--ink-soft);margin:14px 0 0">🛒 New stock arrives every morning in limited amounts, plus one item at 40% off. ${shopTab==='food' ? 'Coffee and bubble tea are at the café, ramen and sushi at the ramen shop.' : shopTab==='cloth' ? 'Clothes you buy can be put on residents under "Give a gift".' : ''}</p>`;
   openModal(html, b=>{
     if(!b) return;
     if(b.dataset.tab){ sfx.pop(); openShop(b.dataset.tab); }
     if(b.dataset.kitchen){ openKitchen(); return; }
+    if(b.dataset.projects){ openProjects(); return; }
     if(b.dataset.buy){ const k = b.dataset.buy, it = cat[k], pr = shopPrice(shopTab,k); if(S.coins < pr || sh.stock[shopTab][k] <= 0) return; S.coins -= pr; sh.stock[shopTab][k]--; inv[k] = (inv[k]||0)+1; updateCoins(); sfx.coin(); toast(`Bought ${it.n}!`); save(); openShop(); }
   });
 }
@@ -4517,6 +4556,15 @@ function morning(){
   residents.forEach(r=>{ if(r.state==='home' || r.state==='visit'){ r.state='idle'; r.timer=rand(.2,2); r.p.root.position.copy(doorPoint(homeSlot(r))); r.p.root.visible = true; } });
   S.news = {day:S.day-1, items:(S.log||[]).slice()}; S.log = [];
   const extra = [];
+  // story wishes (crushes) fade after 2 days so they never block ordinary daily wishes for long
+  residents.forEach(r=>{ const w = r.d.want; if(w && w.type==='love' && w.since!=null && S.day - w.since >= 2) r.d.want = null; });
+  // neglect has consequences: going to bed hungry hurts mood, and sulking residents like you less
+  residents.forEach(r=>{ const d = r.d; if(d.isPlayer || d.kid) return;
+    if(d.full < 10){ d.hungryDays = (d.hungryDays||0) + 1; d.mood = clamp(d.mood - 10, 0, 100);
+      if(d.hungryDays >= 2){ addFriendWithPlayer(r, -3); extra.push(`😤 ${d.name} has gone hungry for ${d.hungryDays} days and is sulking. Feed ${ta(d)} soon!`); }
+      else extra.push(`😞 ${d.name} went to bed hungry`); }
+    else d.hungryDays = 0; });
+  if(projLv('beds')) residents.forEach(r=>{ if(!r.d.isPlayer) r.d.mood = Math.max(r.d.mood, 80); });
   residents.forEach(r=>{ const w = r.d.want; if(w && w.type==='makeup' && w.since!=null && S.day - w.since >= 5){ const o = byId(w.with); r.d.want = null; if(o && o.d.want && o.d.want.type==='makeup' && o.d.want.with===r.d.id){ o.d.want = null; extra.push(`🤝 ${r.d.name} and ${o.d.name} finally made up after a few days`); } } });
   residents.forEach(r=>{ if(r.d.kid){ const before = kidStage(Object.assign({}, r.d, {bornDay:r.d.bornDay+1})); r.p.root.scale.setScalar(kidScale(r.d)); const now = kidStage(r.d); if(now !== before && S.day - r.d.bornDay < KID_DAYS) extra.push(`🌱 ${r.d.name} ${Math.floor(kidAge(r.d))} turned ${now}`); } });
   residents.forEach(r=>{ if(r.d.kid && S.day - r.d.bornDay >= KID_DAYS){ r.d.kid = false; r.d.age = ADULT_AGE; r.p.root.scale.setScalar(1.25); r.d.job = pick(jobsOpen().filter(k=>k!=='none')); giveDream(r.d); addCoins(50); extra.push(`🎓 ${r.d.name} graduated at 18 and became a grown-up islander, and got a job as a ${JOBS[r.d.job].n}!`); } });
@@ -4611,7 +4659,12 @@ function onTap(x, y){
   const hits = ray.intersectObjects(objs, true);
   for(const h of hits){
     let o = h.object; while(o && !o.userData.pick && o!==ground) o = o.parent;
-    if(o===ground){ if(selected) closeSheet(); const pt = h.point; const d = Math.hypot(pt.x,pt.z); const k = d>12 ? 12/d : 1; cam.goal.set(pt.x*k,0,pt.z*k); return; }
+    if(o===ground){
+      let near = null, nd = 52;
+      residents.forEach(r=>{ if(!r.p.root.visible) return; const v = r.p.root.position.clone(); v.y += 1.5; v.project(camera);
+        const dd = Math.hypot((v.x*.5+.5)*innerWidth - x, (-v.y*.5+.5)*innerHeight - y); if(v.z < 1 && dd < nd){ nd = dd; near = r; } });
+      if(near){ select(near); return; }
+      if(selected) closeSheet(); const pt = h.point; const d = Math.hypot(pt.x,pt.z); const k = d>12 ? 12/d : 1; cam.goal.set(pt.x*k,0,pt.z*k); return; }
     if(!o) continue;
     const pk = o.userData.pick;
     if(pk.type==='res'){ select(pk.r); return; }
@@ -4743,7 +4796,7 @@ $('#sheet').addEventListener('click', e=>{
     if(r.state==='chat') endChat(r);
     r.state = 'eat'; r.timer = 1.8; r.eatEmoji = FOODS[k].e; sfx.munch();
     const fav = k===d.fav, bad = k===d.dislike;
-    d.full = clamp(d.full + (fav?60:45), 0, 100);
+    d.full = clamp(d.full + (fav?60:45) + (projLv('stoves') ? 10 : 0), 0, 100);
     r.after = ()=>{
       r.say = (fav ? `${FOODS[k].n}! My favorite` : bad ? `Ugh... ${FOODS[k].n} isn't very tasty` : `${FOODS[k].n} is so good`) + ', ' + d.catch;
       if(fav){ d.mood = clamp(d.mood+22,0,100); beHappy(r,'😍',2); toast(`${FOODS[k].n} is ${d.name}'s favorite!`,'pink'); sfx.happy(); }
@@ -5439,9 +5492,32 @@ function petEdClick(b, e){
 const clock = new T.Clock(); let acc = 0, saveT = 0, barT = 0;
 let simT = 0, petT = 0;
 let gameSpeed = 1, paused = false;
+// adaptive quality: if frames stay slow, first drop the pixel ratio to 1, then turn the sun's shadows off
+let qAcc = 0, qN = 0, qLevel = 0;
+function adaptQuality(d){
+  if(document.hidden || d > .5 || paused || qLevel >= 2) return;
+  qAcc += d; qN++;
+  if(qAcc < 4) return;
+  const avg = qAcc/qN; qAcc = 0; qN = 0;
+  if(avg < .034) return;
+  qLevel++;
+  if(qLevel===1){ renderer.setPixelRatio(1); onResize(); }
+  else { sun.castShadow = false; scene.traverse(o=>{ if(o.material){ (Array.isArray(o.material) ? o.material : [o.material]).forEach(m=>m.needsUpdate = true); } }); }
+}
+// tiny props don't need to cast shadows; skipping them roughly halves the shadow pass
+function trimShadows(root){
+  const bs = new T.Sphere(), sc = new T.Vector3();
+  root.traverse(o=>{
+    if(!o.isMesh || !o.castShadow || !o.geometry) return;
+    if(!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+    bs.copy(o.geometry.boundingSphere); o.getWorldScale(sc);
+    if(bs.radius * Math.max(sc.x, sc.y, sc.z) < .32) o.castShadow = false;
+  });
+}
 function loop(){
   requestAnimationFrame(loop);
-  loopStep(Math.min(clock.getDelta(), .05));
+  const d = clock.getDelta(); adaptQuality(d);
+  loopStep(Math.min(d, .05));
 }
 function loopStep(raw){
   const dt = paused ? 0 : raw*gameSpeed;
@@ -5510,12 +5586,22 @@ function frame(dt, t){
 S = loadState();
 S.inv = Object.assign({food:{},acc:{},furn:{},cloth:{}}, S.inv||{});
 if(!S.log) S.log = [];
+if(!S.proj) S.proj = {};
+{ const away = S.lastSeen ? Date.now() - S.lastSeen : 0;
+  if(away > 30*60*1000){
+    const hrs = away/3.6e6, n = hrs >= 8 ? 3 : hrs >= 2 ? 2 : 1, got = [];
+    const basics = Object.keys(FOODS).filter(k=>!FOODS[k].cafe && !FOODS[k].ramen && !FOODS[k].holiday && !FOODS[k].dish && k!=='dark');
+    for(let i=0;i<n;i++){ const k = pick(basics); S.inv.food[k] = (S.inv.food[k]||0) + 1; got.push(FOODS[k].e + FOODS[k].n); }
+    if(hrs >= 8) got.push(souvenir());
+    setTimeout(()=>toast(`💌 Welcome back! While you were away the islanders left you: ${got.join(', ')}`, 'pink'), 2500);
+  } }
 S.residents.forEach(d=>{ if(!d.catch) d.catch = pick(CATCHES); if(d.partner===undefined) d.partner = null; if(!d.voice) d.voice = newVoice(); if(d.voice.seed==null) d.voice.seed = Math.random(); if(!d.voice.g){ d.voice.g = guessGender(d); if(d.voice.g==='m' && d.voice.pitch > 1.1) d.voice.pitch = Math.round(rand(.75,1.05)*10)/10; if(d.voice.g==='f' && d.voice.pitch < 1.05) d.voice.pitch = Math.round(rand(1.1,1.5)*10)/10; } if(!d.traits){ d.traits = traitsFor(d.pers); } if(!d.bday) d.bday = ri(1,YEAR); if(!d.outfit) d.outfit = 'tee'; if(!d.look.eyeColor) d.look.eyeColor = pick(EYE_COLORS.slice(0,3)); if(d.look.pattern===undefined) d.look.pattern = pick(['stripe','dots','stars','hearts','flowers','check']); if(!d.songs) d.songs = [songCopy(pick(SONG_BOOK))]; });
 if(S.visitor && (S.hour >= 20 || S.hour < 6)) S.visitor = null;
 S.residents.forEach(d=>{ delete d.likes; addResident(d,false); });
 if(!S.pets) S.pets = [];
 S.pets.forEach(pd=>addPet(pd));
 applyIsland(true);
+trimShadows(scene);
 if(!S.weather || S.weather.day !== S.day) S.weather = {day:S.day, kind:pickWeather()};
 residents.forEach(r=>{ if(!r.d.kid && !r.d.isPlayer && !r.d.job) r.d.job = pick(jobsOpen().filter(k=>k!=='none')); });
 applySeason(); buildHolidayDecor(); applyHolidayHats();
