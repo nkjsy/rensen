@@ -2056,7 +2056,7 @@ function startEvent(type, a, b, style){
   a.dest = EV_SPOT.clone().add(new T.Vector3(-.95,0,0)); b.dest = EV_SPOT.clone().add(new T.Vector3(.95,0,0));
   a.face = b; b.face = a; if(rival){ rival.face = b; rival.dateWith = null; }
   ev = {type, a, b, style, stage:0, t:0, rival, pitch0:cam.pitch};
-  cam.goal.copy(EV_SPOT); cam.distGoal = 11.5; cam.pitchGoal = .5; cam.yawGoal = 0; // face the pair from the front, fountain behind them
+  cam.goal.copy(EV_SPOT); cam.distGoal = 11.5; cam.pitchGoal = .5; cam.yawGoal = Math.PI; // look at the pair from the fountain side, so you see their faces
   toast(type==='love' ? `${a.d.name} asked ${b.d.name} to meet by the fountain...` : type==='propose' ? `${a.d.name} is hiding a ring in their pocket...` : `Called ${a.d.name} and ${b.d.name} together...`);
   return true;
 }
