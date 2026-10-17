@@ -4204,6 +4204,7 @@ function openTasks(tab){
     if(b.dataset.sbuy) buyStall(b.dataset.sbuy);
   });
   updateTaskDot();
+  if(S.tut >= TUT.length && !S.goalsShown) setTimeout(openNextGoals, 900);
 }
 
 /* =====================================================================
@@ -4857,7 +4858,7 @@ function onTap(x, y){
 /* ---------------- UI: toasts ---------------- */
 function toast(msg, kind){
   const el = document.createElement('div'); el.className = 'toast' + (kind==='gold'?' gold':kind==='pink'?' pink':''); el.textContent = msg;
-  const box = $('#toasts'); box.appendChild(el); while(box.children.length > (innerWidth < 500 ? 2 : 3)) box.firstChild.remove();
+  const box = $('#toasts'); box.appendChild(el); while(box.children.length > 2) box.firstChild.remove();
   setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(), 400); }, Math.min(6000, 2800 + Math.max(0, msg.length - 45)*45));
 }
 
@@ -4884,6 +4885,8 @@ function firstHook(){
 let lastInput = performance.now();
 ['pointerdown','keydown','wheel'].forEach(t=>addEventListener(t, ()=>{ lastInput = performance.now(); }, {capture:true, passive:true}));
 function idleNudge(){
+  // the first "Tap me!" is still up but the player wandered off (e.g. made a new resident): bring the camera back to it
+  if(hook && hook.first && mode==='island' && !selected && !document.querySelector('#modalRoot .modal-bg') && performance.now() - lastInput > 15000){ lastInput = performance.now(); cam.goal.copy(hook.r.p.root.position); cam.distGoal = innerHeight > innerWidth ? 22 : 17; setTimeout(()=>{ if(cam.distGoal===22 || cam.distGoal===17) cam.distGoal = null; }, 2500); return; }
   if(hook || mode!=='island' || selected || ev || show || birth || paused || pm.on || isNight() || document.querySelector('#modalRoot .modal-bg')) return;
   if(performance.now() - lastInput < ((S.tut ?? 99) < TUT.length ? 15000 : 30000)) return;
   lastInput = performance.now();
@@ -4903,16 +4906,17 @@ function hookTick(dt){
   if(!selected && hook.t < 8 && mode==='island') cam.goal.copy(r.p.root.position);
 }
 // after the very first tap the camera settles back to the usual view, so the houses and places are on screen again
-function zoomOutAfterFirst(){ const z = innerHeight > innerWidth*1.1 ? 48 : innerWidth < 600 ? 33 : 25; setTimeout(()=>{ if(!selected){ cam.distGoal = z; setTimeout(()=>{ if(cam.distGoal===z) cam.distGoal = null; }, 2500); } else cam.zoomBack = z; }, 300); }
+function zoomOutAfterFirst(){ const z = innerHeight > innerWidth*1.1 ? 48 : innerWidth < 600 ? 33 : 25; setTimeout(()=>{ cam.goal.set(0,0,0); if(!selected){ cam.distGoal = z; setTimeout(()=>{ if(cam.distGoal===z) cam.distGoal = null; }, 2500); } else cam.zoomBack = z; }, 300); }
 function tutStep(k){
   if(S.tut == null || S.tut >= TUT.length || S.tut !== k) return;
   S.tut++; addCoins(k===TUT.length-1 ? 60 : 20);
   // the first steps are done: show what to aim for next instead of leaving the player with nothing to do
-  if(S.tut >= TUT.length){ let tries = 0; const wait = ()=>{ if(document.querySelector('#modalRoot .modal-bg') || !$('#sheet').hidden){ if(++tries < 120) setTimeout(wait, 500); return; } openNextGoals(); }; setTimeout(wait, 1600); }
+  if(S.tut >= TUT.length){ let tries = 0; const wait = ()=>{ if(S.goalsShown) return; if(document.querySelector('#modalRoot .modal-bg') || !$('#sheet').hidden){ if(++tries < 120) setTimeout(wait, 500); return; } openNextGoals(); }; setTimeout(wait, 1600); }
   setTimeout(()=>toast(S.tut >= TUT.length ? '🎓 First steps done! +60 coins. The yellow bar now shows who needs you next' : `✅ ${TUT[k].t}! +20 coins. Next: ${TUT[S.tut].e} ${TUT[S.tut].t}`, 'gold'), 500);
   save(); guideT = 0;
 }
 function openNextGoals(){
+  S.goalsShown = 1;
   const T9 = ensureTasks(), dreamers = residents.filter(r=>!r.d.isPlayer && dreamOf(r.d) && !r.d.dream.done).slice(0, 2), pr = PROJECTS[0];
   openModal(modalHead('🎓 First steps done!') + `<p class="tip">Here's what to aim for next. Every goal pays out coins and surprises.</p>
     <div class="sec">🎯 Today's tasks</div><div class="task-list">${T9.list.map(t=>`<div class="task"><span class="ic">${TASK_DEFS[t.k].e}</span><span class="tx"><b>${TASK_DEFS[t.k].n}</b><small>${Math.min(t.prog,t.goal)} / ${t.goal} · 40 coins</small></span>${TASK_GO[t.k] ? `<button class="toy pill-btn" data-tgo="${t.k}">Go ▶</button>` : ''}</div>`).join('')}</div>
