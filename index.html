@@ -4867,6 +4867,25 @@ const TUT = [
   {e:'🏠', t:'Visit a resident\'s home'},
   {e:'🎯', t:'Check today\'s tasks (🎯 at the top)'}
 ];
+// a new island opens close-up on one resident with an easy wish and a bouncing "Tap me!" sign over them
+let hook = null;
+function firstHook(){
+  const r = residents.find(x=>!x.d.isPlayer && x.p.root.visible && !x.d.kid); if(!r) return;
+  if(!r.d.want) r.d.want = {type:'pat'};
+  // stand them on the open plaza between the fountain and the camera, so nothing is in the way
+  r.state = 'idle'; r.timer = 30; r.dest = null; r.target = null; r.p.root.position.set(Math.sin(cam.yaw)*3.7, 0, Math.cos(cam.yaw)*3.7); r.p.root.rotation.y = cam.yaw;
+  const sign = sprite(labelTex('👆 Tap me!', '#FFE066'), 2.2, .62); sign.position.y = 4.3; r.p.root.add(sign);
+  hook = {r, sign, t:0};
+  cam.goal.copy(r.p.root.position); cam.target.copy(r.p.root.position); cam.dist = innerHeight > innerWidth ? 22 : 17; cam.distGoal = null;
+}
+function hookTick(dt){
+  if(!hook) return;
+  const {r, sign} = hook; hook.t += dt;
+  if((S.tut||0) > 0 || !r.p.root.visible){ r.p.root.remove(sign); sign.material.dispose(); if(r.state==='idle') r.timer = rand(1, 3); hook = null; return; }
+  sign.position.y = 4.3 + Math.abs(Math.sin(hook.t*4))*.3;
+  if(r.state==='idle' && r.timer < 5) r.timer = 8; // stay put until the player taps
+  if(!selected && hook.t < 8 && mode==='island') cam.goal.copy(r.p.root.position);
+}
 function tutStep(k){
   if(S.tut == null || S.tut >= TUT.length || S.tut !== k) return;
   S.tut++; addCoins(k===TUT.length-1 ? 60 : 20);
@@ -5854,7 +5873,7 @@ $('#restartNo').onclick = ()=>{ sfx.pop(); $('#restartAsk').hidden = true; };
 $('#restartYes').onclick = ()=>{ try{ localStorage.removeItem('xx_save'); }catch(e){} setPaused(false); closeModal(); resetWorld(freshState()); toast('A new island, a fresh start!','gold'); };
 function frame(dt, t, raw){
   raw = raw ?? dt;
-  tickTime(dt); updateGuide(raw); if(mode==='island'){ updateFrustum(); applyResShadows(); }
+  tickTime(dt); updateGuide(raw); hookTick(raw); if(mode==='island'){ updateFrustum(); applyResShadows(); }
   acc += dt; if(acc >= 1){ residents.forEach(r=>needsTick(r, acc)); acc = 0; }
   saveT += dt; if(saveT > 6){ save(); saveT = 0; }
   barT += dt; if(barT > .4){ refreshBars(); barT = 0; }
@@ -6010,8 +6029,8 @@ function showUpdateBar(){
 }
 checkUpdate(); setInterval(checkUpdate, 3*60*1000);
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) checkUpdate(); });
-if(/[?&]debug\b/.test(location.search)) window.__isle = {get S(){ return S; }, addResident, get camera(){ return camera; }, get roomCam(){ return roomCam; }, openProjects, buildProjects, setQuality, get qLevel(){ return qLevel; }, welcomeBack, guideTarget, get residents(){ return residents; }, get ev(){ return ev; }, get show(){ return show; }, get visitor(){ return visitor; }, quarrel, rebuildChar, cam, loopStep, openFishing, openBugs, openShells, openTasks, task, openFortune, openPlay, startPlay, PLAYS, showDream, openLifeAsk, pickAsk, dramaMorning, stallsMorning, openStall, buyStall, openWeddingPlan, startWedding, openRace, runRace, petExtraTick, divorce, composeSong, get pets(){ return pets; }, morning, addPet, newPetData, select, gotCatch, rollCatch, openBook, closeModal, openApartment, openMailbox, lettersMorning, openShareResident, openImportResident, residentCode, openHouseStyle, buildHouse, openPhotoMode, closePhotoMode, snapPhoto, memoryLine, remember, musicTheme, get pm(){ return pm; }, checkUpdate, openSaveIO, loadSaveText, openBook, openFamilyTree, openKitchen, openSchool, startTrip, tripMorning, birthdayAge, giveDream, checkDream, milestone, updateSeen, schoolMorning, openApartment, openRelChart, openTreasures, gainTreasure, openMiniGame, openSleepFix, doActivity, partyHourly, partyMorning, openDesigns, openDesignEditor, autoPhoto, applySeason, holidayMorning, jobMorning, openMe, maybeInvite, convoFor, portrait, buildHolidayDecor, applyHolidayHats, restockShop, renderer, scene, frame, get birth(){ return birth; }, haveBaby, get isleR(){ return isleR; }, get isleRTarget(){ return isleRTarget; }, get pets(){ return pets; }, newPetData, addPet, get paused(){ return paused; }, checkExpand, applyIsleLevel, canRomance, parentsLine, music(){ return {mStep, musicOn, soundOn, ctx: actx && actx.state}; }, voices(){ return zhVoices.map(v=>v.name+" | "+v.lang); }, pickVoice, speechText, natPitch, startParty, startConcert, openConcert, openAsk, openVisitor, spawnVisitor, makeVisitor, applyLv, openPark, openCafe, openLoc, songSeq, openShop, openRPS, takePhoto, openEditor, openPets, openPetEditor, openPetSheet, get pets(){ return pets; }, step(secs){ for(let i=0;i<secs*30;i++){ simT += 1/30; frame(1/30, simT); } }, select, startEvent, morning, enterRoom, openNews, showDream, byId};
-if(S.tut===0) setTimeout(()=>toast('Welcome to Heart Island! Follow the green bar at the bottom to get started 💖', 'pink'), 700);
+if(/[?&]debug\b/.test(location.search)) window.__isle = {get S(){ return S; }, addResident, setTalkBubble, sayScript, burst, confetti, get hook(){ return hook; }, get camera(){ return camera; }, get roomCam(){ return roomCam; }, openProjects, buildProjects, setQuality, get qLevel(){ return qLevel; }, welcomeBack, guideTarget, get residents(){ return residents; }, get ev(){ return ev; }, get show(){ return show; }, get visitor(){ return visitor; }, quarrel, rebuildChar, cam, loopStep, openFishing, openBugs, openShells, openTasks, task, openFortune, openPlay, startPlay, PLAYS, showDream, openLifeAsk, pickAsk, dramaMorning, stallsMorning, openStall, buyStall, openWeddingPlan, startWedding, openRace, runRace, petExtraTick, divorce, composeSong, get pets(){ return pets; }, morning, addPet, newPetData, select, gotCatch, rollCatch, openBook, closeModal, openApartment, openMailbox, lettersMorning, openShareResident, openImportResident, residentCode, openHouseStyle, buildHouse, openPhotoMode, closePhotoMode, snapPhoto, memoryLine, remember, musicTheme, get pm(){ return pm; }, checkUpdate, openSaveIO, loadSaveText, openBook, openFamilyTree, openKitchen, openSchool, startTrip, tripMorning, birthdayAge, giveDream, checkDream, milestone, updateSeen, schoolMorning, openApartment, openRelChart, openTreasures, gainTreasure, openMiniGame, openSleepFix, doActivity, partyHourly, partyMorning, openDesigns, openDesignEditor, autoPhoto, applySeason, holidayMorning, jobMorning, openMe, maybeInvite, convoFor, portrait, buildHolidayDecor, applyHolidayHats, restockShop, renderer, scene, frame, get birth(){ return birth; }, haveBaby, get isleR(){ return isleR; }, get isleRTarget(){ return isleRTarget; }, get pets(){ return pets; }, newPetData, addPet, get paused(){ return paused; }, checkExpand, applyIsleLevel, canRomance, parentsLine, music(){ return {mStep, musicOn, soundOn, ctx: actx && actx.state}; }, voices(){ return zhVoices.map(v=>v.name+" | "+v.lang); }, pickVoice, speechText, natPitch, startParty, startConcert, openConcert, openAsk, openVisitor, spawnVisitor, makeVisitor, applyLv, openPark, openCafe, openLoc, songSeq, openShop, openRPS, takePhoto, openEditor, openPets, openPetEditor, openPetSheet, get pets(){ return pets; }, step(secs){ for(let i=0;i<secs*30;i++){ simT += 1/30; frame(1/30, simT); } }, select, startEvent, morning, enterRoom, openNews, showDream, byId};
+if(S.tut===0) firstHook();
 })();
 </script>
 
