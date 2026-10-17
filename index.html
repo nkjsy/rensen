@@ -164,7 +164,8 @@ body:has(#sheet:not([hidden])) #toasts,body:has(#roomBar:not([hidden])) #toasts{
 #guide .gx{flex:none;font-size:22px;line-height:1}
 #guide .gt{overflow:hidden;text-overflow:ellipsis}
 #guide .gm{flex:none;font-size:12px;color:var(--ink-soft);font-family:var(--body)}
-#guide.tut{background:#E4F6EE}
+#guide.tut{background:#E4F6EE;animation:pop .35s cubic-bezier(.3,1.6,.5,1),gpulse 1.6s ease-in-out .4s infinite}
+@keyframes gpulse{50%{transform:translateX(-50%) scale(1.05)}}
 @media (max-width:420px){#guide{bottom:calc(106px + env(safe-area-inset-bottom,0px));font-size:14px;padding:6px 12px 7px}}
 .welcome-list{display:grid;gap:8px;margin:0 0 12px}.welcome-list li{list-style:none;background:#fff;border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:15px}
 .streak{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:6px 0 12px}.streak span{display:flex;flex-direction:column;align-items:center;gap:2px;border:2px solid var(--line);border-radius:12px;padding:6px 2px;font-size:20px;background:#fff}.streak small{font-size:10px;color:var(--ink-soft)}.streak .got{background:#FFE9A8;border-color:var(--sun-d)}.streak .now{outline:3px solid var(--coral);outline-offset:1px}
@@ -251,7 +252,7 @@ body:has(#modalRoot .modal-bg) .toast{font-size:15px;padding:5px 12px}
 .adj b{min-width:22px;text-align:center}
 .adj button{width:40px;height:34px;font-size:16px;border-radius:10px;padding:0}
 .mii-tip{font-size:13px;color:var(--ink-soft);margin:6px 0}
-.mii-nav{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px}
+.mii-nav{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px;position:sticky;bottom:-18px;background:var(--panel);padding:10px 0 12px;z-index:3;box-shadow:0 -8px 8px -6px var(--panel)}
 .mii-nav .big-go{width:auto;flex:1;max-width:360px;margin:0}
 .voice-big label{font-size:15px}
 .pers-card{background:#fff;border:3px solid var(--ink);border-radius:18px;padding:12px;text-align:center}
@@ -3519,7 +3520,7 @@ function openShop(tab){
     if(b.dataset.tab){ sfx.pop(); openShop(b.dataset.tab); }
     if(b.dataset.kitchen){ openKitchen(); return; }
     if(b.dataset.projects){ openProjects(); return; }
-    if(b.dataset.buy){ const k = b.dataset.buy, it = cat[k], pr = shopPrice(shopTab,k); if(S.coins < pr || sh.stock[shopTab][k] <= 0) return; S.coins -= pr; sh.stock[shopTab][k]--; inv[k] = (inv[k]||0)+1; updateCoins(); sfx.coin(); toast(`Bought ${it.n}!`); tutStep(2); save(); openShop(); }
+    if(b.dataset.buy){ const k = b.dataset.buy, it = cat[k], pr = shopPrice(shopTab,k); if(S.coins < pr || sh.stock[shopTab][k] <= 0) return; S.coins -= pr; sh.stock[shopTab][k]--; inv[k] = (inv[k]||0)+1; updateCoins(); sfx.coin(); toast(shopTab==='food' && !S.fedHint ? (S.fedHint = 1, `Bought ${it.n}! Tap a resident and choose 🍙 Feed to give it to them`) : `Bought ${it.n}!`); tutStep(2); save(); openShop(); }
   });
 }
 
@@ -4696,6 +4697,7 @@ let lastHourInt = null;
 function tickTime(dt){
   const prev = S.hour;
   S.hour += dt * (isNight() ? .05 : festivalNow() ? .04 : .1); // 1 game hour = 10s day, 20s night, 25s during fireworks
+  if((S.tut ?? 99) < TUT.length && S.day === 1 && prev < 18 && S.hour >= 18) S.hour = 17.99;
   if(S.hour >= 24) S.hour -= 24;
   if(prev < 6 && S.hour >= 6) morning();
   if(prev < 19.5 && S.hour >= 19.5 && isFestival()){ toast('','gold'); residents.forEach(r=>{ if(r.state==='idle'||r.state==='walk'){ r.state='idle'; r.timer=rand(0,1.5); r.watching=false; } }); }
@@ -4855,8 +4857,8 @@ function onTap(x, y){
 /* ---------------- UI: toasts ---------------- */
 function toast(msg, kind){
   const el = document.createElement('div'); el.className = 'toast' + (kind==='gold'?' gold':kind==='pink'?' pink':''); el.textContent = msg;
-  const box = $('#toasts'); box.appendChild(el); while(box.children.length > 3) box.firstChild.remove();
-  setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(), 400); }, 2800);
+  const box = $('#toasts'); box.appendChild(el); while(box.children.length > (innerWidth < 500 ? 2 : 3)) box.firstChild.remove();
+  setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(), 400); }, Math.min(6000, 2800 + Math.max(0, msg.length - 45)*45));
 }
 
 /* ---------------- UI: guide pill (first steps, then "who needs you next") ---------------- */
@@ -4875,22 +4877,48 @@ function firstHook(){
   // stand them on the open plaza between the fountain and the camera, so nothing is in the way
   r.state = 'idle'; r.timer = 30; r.dest = null; r.target = null; r.p.root.position.set(Math.sin(cam.yaw)*3.7, 0, Math.cos(cam.yaw)*3.7); r.p.root.rotation.y = cam.yaw;
   const sign = sprite(labelTex('👆 Tap me!', '#FFE066'), 2.2, .62); sign.position.y = 4.3; r.p.root.add(sign);
-  hook = {r, sign, t:0};
+  hook = {r, sign, t:0, first:true};
   cam.goal.copy(r.p.root.position); cam.target.copy(r.p.root.position); cam.dist = innerHeight > innerWidth ? 22 : 17; cam.distGoal = null;
+}
+// nobody has touched the screen for a while: fly over to the resident who needs you most and put the sign over them
+let lastInput = performance.now();
+['pointerdown','keydown','wheel'].forEach(t=>addEventListener(t, ()=>{ lastInput = performance.now(); }, {capture:true, passive:true}));
+function idleNudge(){
+  if(hook || mode!=='island' || selected || ev || show || birth || paused || pm.on || isNight() || document.querySelector('#modalRoot .modal-bg')) return;
+  if(performance.now() - lastInput < ((S.tut ?? 99) < TUT.length ? 15000 : 30000)) return;
+  lastInput = performance.now();
+  const g = guideTarget(); const r = g.r && g.r.p.root.visible && g.r.state!=='home' ? g.r : (S.tut ?? 99) < 2 ? residents.find(x=>!x.d.isPlayer && x.p.root.visible) : null; if(!r) return;
+  if(r.state==='walk' || r.state==='idle'){ r.state = 'idle'; r.timer = 12; r.dest = null; }
+  const sign = sprite(labelTex('👆 Tap me!', '#FFE066'), 2.2, .62); sign.position.y = 4.3; r.p.root.add(sign);
+  hook = {r, sign, t:0};
+  cam.goal.copy(r.p.root.position); cam.distGoal = innerHeight > innerWidth ? 24 : 18; setTimeout(()=>{ if(cam.distGoal===24 || cam.distGoal===18) cam.distGoal = null; }, 2500);
 }
 function hookTick(dt){
   if(!hook) return;
   const {r, sign} = hook; hook.t += dt;
-  if((S.tut||0) > 0 || !r.p.root.visible){ r.p.root.remove(sign); sign.material.dispose(); if(r.state==='idle') r.timer = rand(1, 3); hook = null; return; }
+  const done = hook.first ? (S.tut||0) > 0 : (selected===r || hook.t > 20 || (!r.d.want && !r.d.lvPending));
+  if(done || !r.p.root.visible){ r.p.root.remove(sign); sign.material.dispose(); if(r.state==='idle') r.timer = rand(1, 3); if(hook.first) zoomOutAfterFirst(); hook = null; return; }
   sign.position.y = 4.3 + Math.abs(Math.sin(hook.t*4))*.3;
   if(r.state==='idle' && r.timer < 5) r.timer = 8; // stay put until the player taps
   if(!selected && hook.t < 8 && mode==='island') cam.goal.copy(r.p.root.position);
 }
+// after the very first tap the camera settles back to the usual view, so the houses and places are on screen again
+function zoomOutAfterFirst(){ const z = innerHeight > innerWidth*1.1 ? 48 : innerWidth < 600 ? 33 : 25; setTimeout(()=>{ if(!selected){ cam.distGoal = z; setTimeout(()=>{ if(cam.distGoal===z) cam.distGoal = null; }, 2500); } else cam.zoomBack = z; }, 300); }
 function tutStep(k){
   if(S.tut == null || S.tut >= TUT.length || S.tut !== k) return;
   S.tut++; addCoins(k===TUT.length-1 ? 60 : 20);
+  // the first steps are done: show what to aim for next instead of leaving the player with nothing to do
+  if(S.tut >= TUT.length){ let tries = 0; const wait = ()=>{ if(document.querySelector('#modalRoot .modal-bg') || !$('#sheet').hidden){ if(++tries < 120) setTimeout(wait, 500); return; } openNextGoals(); }; setTimeout(wait, 1600); }
   setTimeout(()=>toast(S.tut >= TUT.length ? '🎓 First steps done! +60 coins. The yellow bar now shows who needs you next' : `✅ ${TUT[k].t}! +20 coins. Next: ${TUT[S.tut].e} ${TUT[S.tut].t}`, 'gold'), 500);
   save(); guideT = 0;
+}
+function openNextGoals(){
+  const T9 = ensureTasks(), dreamers = residents.filter(r=>!r.d.isPlayer && dreamOf(r.d) && !r.d.dream.done).slice(0, 2), pr = PROJECTS[0];
+  openModal(modalHead('🎓 First steps done!') + `<p class="tip">Here's what to aim for next. Every goal pays out coins and surprises.</p>
+    <div class="sec">🎯 Today's tasks</div><div class="task-list">${T9.list.map(t=>`<div class="task"><span class="ic">${TASK_DEFS[t.k].e}</span><span class="tx"><b>${TASK_DEFS[t.k].n}</b><small>${Math.min(t.prog,t.goal)} / ${t.goal} · 40 coins</small></span>${TASK_GO[t.k] ? `<button class="toy pill-btn" data-tgo="${t.k}">Go ▶</button>` : ''}</div>`).join('')}</div>
+    ${dreamers.length ? `<div class="sec">🌟 Residents' dreams</div>${dreamers.map(r=>`<div class="task"><span class="ic">${LIFE_DREAMS[r.d.dream.id].e}</span><span class="tx"><b>${esc(r.d.name)}: ${LIFE_DREAMS[r.d.dream.id].n}</b><small>${LIFE_DREAMS[r.d.dream.id].how}</small></span></div>`).join('')}` : ''}
+    <div class="sec">🏗️ Saving up for</div><div class="task"><span class="ic">${pr.e}</span><span class="tx"><b>${pr.n} · ${pr.p} coins</b><small>${pr.d}. More island projects unlock big upgrades.</small></span></div>
+    <p class="tip">The yellow bar at the bottom always shows who needs you next. Tap it to go there.</p><button class="toy big-go" data-close="1">Got it!</button>`, b=>{ if(b && b.dataset.tgo && TASK_GO[b.dataset.tgo]){ closeModal(); TASK_GO[b.dataset.tgo](); } });
 }
 const NEED_RANK = {bday:9, love:8, propose:8, makeup:7, sick:7, lost:6, food:3};
 const NEED_SHORT = {bday:'birthday today!', love:'has a crush 💘', propose:'wants to propose', makeup:'had a fight', sick:'caught a cold', lost:'lost something', food:'is hungry', acc:'wants a gift', cloth:'wants new clothes', furn:'wants furniture', friend:'wants a new friend', pat:'wants a head pat', play:'wants to play', game:'wants to play a game', ask:'has a question', sleep:'can\'t sleep', taste:'wants to try a food', candy:'wants candy'};
@@ -4907,11 +4935,13 @@ function updateGuide(dt){
   const el = $('#guide'), hide = mode!=='island' || !$('#sheet').hidden || !!$('#modalRoot .modal-bg') || ev || show || paused || pm.on || birth;
   let key = '', html = '';
   if(!hide){
-    if(S.tut != null && S.tut < TUT.length){ const st = TUT[S.tut]; key = 't' + S.tut; html = `<span class="gx">${st.e}</span><span class="gt">${st.t}</span><span class="gm">${S.tut+1}/${TUT.length}</span>`; }
+    if(S.tut != null && S.tut < TUT.length){ const st = TUT[S.tut]; key = 't' + S.tut; html = `<span class="gx">${st.e}</span><span class="gt">${st.t}</span><span class="gm">${S.tut+1}/${TUT.length} ▶</span>`; }
+    else if(isNight()){ key = 'night'; html = '<span class="gx">🌙</span><span class="gt">Everyone is asleep. Sleep till morning for a new day</span><span class="gm">▶</span>'; }
     else { const g = guideTarget(); if(g.r){ const d = g.r.d, w = d.want; key = d.id + (w ? w.type : '') + (d.lvPending?'L':'') + g.more + (g.r.state==='home'?'h':'');
       html = `<span class="gx">${d.lvPending && !(w && NEED_RANK[w.type] >= 6) ? '⭐' : wantEmoji(w)}</span><span class="gt">${esc(d.name)} ${d.lvPending && !(w && NEED_RANK[w.type] >= 6) ? 'leveled up!' : NEED_SHORT[w.type] || 'has a wish'}${g.r.state==='home' ? ' (at home)' : ''}</span>${g.more ? `<span class="gm">+${g.more} more</span>` : ''}`; } }
   }
   if(key !== guideKey){ guideKey = key; el.innerHTML = html; el.className = 'toy' + (S.tut != null && S.tut < TUT.length ? ' tut' : ''); }
+  idleNudge();
   el.hidden = !key;
 }
 $('#guide').onclick = ()=>{
@@ -4920,9 +4950,10 @@ $('#guide').onclick = ()=>{
     const withWish = residents.find(r=>!r.d.isPlayer && r.d.want && r.p.root.visible) || residents.find(r=>!r.d.isPlayer && r.p.root.visible);
     if(S.tut <= 1){ if(withWish) select(withWish); return; }
     if(S.tut===2){ openShop(); return; }
-    if(S.tut===3){ const r = residents.find(x=>!x.d.isPlayer); if(r) enterRoom(r); return; }
+    if(S.tut===3){ const r = residents.find(x=>!x.d.isPlayer && x.state!=='away'); if(r){ toast(`🏠 This is ${r.d.name}'s home. Tap the floor to place furniture`); enterRoom(r); } return; }
     openTasks('today'); return;
   }
+  if(isNight() && (S.tut ?? 99) >= TUT.length){ $('#bSleep').click(); return; }
   const g = guideTarget(); if(!g.r) return;
   if(g.r.state==='home' || g.r.state==='visit') enterRoom(g.r.state==='visit' ? (byId(g.r.visiting) || g.r) : g.r); else select(g.r);
 };
