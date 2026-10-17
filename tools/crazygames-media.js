@@ -9,7 +9,7 @@ const types = {'.html':'text/html; charset=utf-8', '.js':'application/javascript
 const srv = http.createServer((q, s)=>{ const f = path.join(GAME, decodeURIComponent(q.url.split('?')[0]).replace(/^\/$/, '/index.html')); if(!fs.existsSync(f)){ s.writeHead(404); s.end(); return; } s.writeHead(200, {'Content-Type': types[path.extname(f)] || 'application/octet-stream'}); fs.createReadStream(f).pipe(s); }).listen(8790);
 const sleep = ms=>new Promise(r=>setTimeout(r, ms));
 
-const TITLE_CSS = `#hud,#guide,#dock,#toasts,#sheet,#roomBar,#updBar,#pauseBar,#karaoke{display:none!important}
+const TITLE_CSS = `#hud,#dock,#toasts,#sheet,#roomBar,#updBar,#pauseBar,#karaoke{display:none!important}
 #cgTitle{position:fixed;left:0;right:0;top:6%;text-align:center;z-index:50;pointer-events:none;font-family:"PingFang SC","Microsoft YaHei UI","Microsoft YaHei",sans-serif;transition:opacity .6s}
 #cgTitle b{display:inline-block;font-weight:900;color:#FF6F86;font-size:calc(var(--k)*1px);letter-spacing:.06em;transform:rotate(-3deg);text-shadow:var(--ol)}
 #cgTitle small{display:block;margin-top:calc(var(--k)*.1px);font-weight:900;font-size:calc(var(--k)*.3px);color:#FFFFFF;letter-spacing:.25em;text-shadow:var(--ol2)}`;
